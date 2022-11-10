@@ -1,0 +1,28 @@
+{
+  "algorithm": "CEM",
+  "env_kwargs": {
+    "action_mode": "picker",
+    "action_repeat": 8,
+    "camera_name": "default_camera",
+    "deterministic": false,
+    "headless": true,
+    "horizon": 100,
+    "num_picker": 2,
+    "num_variations": 1000,
+    "observation_mode": "key_point",
+    "render": false,
+    "render_mode": "cloth",
+    "use_cached_states": true
+  },
+  "env_name": "ClothFlatten",
+  "exp_name": "cem",
+  "log_dir": "./data/cem",
+  "max_iters": 10,
+  "num_elites": 14,
+  "plan_horizon": 15,
+  "population_size": 140,
+  "seed": 100,
+  "test_episodes": 10,
+  "timestep_per_decision": 21000,
+  "use_mpc": true
+}
