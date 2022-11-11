@@ -230,28 +230,6 @@ class ActorEquivariant(nn.Module):
         return mean, pi, log_pi, log_std
         return conv_out
 
-
-if __name__ == '__main__':
-    # import ipdb; ipdb.set_trace()
-    obs = torch.randn(1, 3, 100, 100)
-    actor1 = Actor((3, 100, 100), (8,), 50, 'pixel', 50, -20, 2, 4, 32)
-    actor2 = ActorEquivariant(obs_shape=(3, 100, 100), action_shape=(8,), hidden_dim=256, encoder_type='pixel-equivariant', encoder_feature_dim=256, log_std_min=-20, log_std_max=2, num_layers=1, num_filters=16, N=4)
-    a1, b1, c1, d1 = actor1(obs)
-    print('a1', a1)
-    print('b1', b1)
-    print('c1', c1)
-    print('d1', d1)
-    print('='*50)
-    a2, b2, c2, d2 = actor2(obs)
-    print('a2', a2)
-    print('b2', b2)
-    print('c2', c2)
-    print('d2', d2)
-    print('='*50)
-
-    
-
-
 class QFunction(nn.Module):
     """MLP for q-function."""
 
@@ -372,30 +350,17 @@ class CriticEquivariant(nn.Module):
     
     def forward(self, obs, action, detach_encoder=False):
         obs = obs / 255.0
+        batch_size = obs.shape[0]
+        action = action.reshape(batch_size, -1)
         obs_geo = escnn.nn.GeometricTensor(obs, escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]))
         conv_out = self.encoder(obs_geo, detach=detach_encoder)   
-        dxy = torch.Tensor([action[0], action[2], action[4], action[6]]).reshape(1, 4, 1, 1)
-        inv_act = torch.Tensor([action[1], action[3], action[5], action[7]]).reshape(1, 4, 1, 1)
+        dxy = torch.cat([action[:, 0:1], action[:, 2:3], action[:, 4:5], action[:, 6:7]], dim=1).reshape(batch_size, 4, 1, 1)
+        inv_act = torch.cat([action[:, 1:2], action[:, 3:4], action[:, 5:6], action[:, 7:8]], dim=1).reshape(batch_size, 4, 1, 1)
         cat = torch.cat((conv_out.tensor, inv_act, dxy), dim=1)
         cat_geo = escnn.nn.GeometricTensor(cat, escnn.nn.FieldType(self.act, self.encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]))
-        q1 = self.Q1(cat_geo).tensor.reshape(obs.shape[0], 1)
-        q2 = self.Q2(cat_geo).tensor.reshape(obs.shape[0], 1)
+        q1 = self.Q1(cat_geo).tensor.reshape(batch_size, 1)
+        q2 = self.Q2(cat_geo).tensor.reshape(batch_size, 1)
         return q1, q2
-
-if __name__ == '__main__':
-    # import ipdb; ipdb.set_trace()
-    obs = torch.randn(1, 3, 100, 100)
-    action = torch.randn(8)
-    critic1 = Critic((3, 100, 100), (8,), 50, 'pixel', 50, 4, 32)
-    critic2 = CriticEquivariant(obs_shape=(3, 100, 100), action_shape=(8,), hidden_dim=256, encoder_type='pixel-equivariant', encoder_feature_dim=256, num_layers=1, num_filters=16, N=4)
-    a1, b1 = critic1(obs, action)
-    print('ca1', a1)
-    print('cb1', b1)
-    print('='*50)
-    a2, b2 = critic2(obs, action)
-    print('a2', a2)
-    print('b2', b2)
-    print('='*50)
 
 class CURL(nn.Module):
     """
