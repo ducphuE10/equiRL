@@ -108,77 +108,6 @@ class PixelEncoder(nn.Module):
         L.log_param('train_encoder/fc', self.fc, step)
         L.log_param('train_encoder/ln', self.ln, step)
 
-class PixelEncoderEquivariant(nn.Module):
-    """Equivariant convolutional encoder of pixels observations."""
-    def __init__(self, obs_shape, feature_dim=512, num_layers=4, num_filters=32, output_logits=False, N=4):
-        super().__init__()
-
-        assert len(obs_shape) == 3
-        self.obs_shape = obs_shape
-        self.feature_dim = feature_dim
-
-        self.act = gspaces.rot2dOnR2(N)
-
-        self.convs1 = torch.nn.Sequential(
-            # 100 x100
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]),
-                            escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=1, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), 2))
-
-            # 50 x 50
-        self.convs2 = torch.nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=1, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2))
-
-            # 25 x 25
-        self.convs3 = torch.nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=1, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2))
-
-            # 12 x 12
-        self.convs4 = torch.nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), 2),
-
-            # 5 x 5
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True))
-
-            # 3 x 3
-        self.convs5 = torch.nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
-                            kernel_size=3, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), inplace=True))
-
-            # 1 x 1
-
-    def forward(self, geo):
-        gg = self.convs1(geo)
-        # print('1', gg.tensor.shape)
-        gg = self.convs2(gg)
-        # print('2', gg.tensor.shape)
-        gg = self.convs3(gg)
-        # print('3', gg.tensor.shape)
-        gg = self.convs4(gg)
-        # print('4', gg.tensor.shape)
-        gg = self.convs5(gg)
-        # print('5', gg.tensor.shape)
-        return gg
-
 class IdentityEncoder(nn.Module):
     def __init__(self, obs_shape, feature_dim, num_layers, num_filters,*args):
         super().__init__()
@@ -195,6 +124,91 @@ class IdentityEncoder(nn.Module):
     def log(self, L, step, log_freq):
         pass
 
+class PixelEncoderEquivariant(nn.Module):
+    """Equivariant convolutional encoder of pixels observations."""
+    def __init__(self, obs_shape, feature_dim=512, num_layers=4, num_filters=32, output_logits=False, N=4):
+        super().__init__()
+
+        assert len(obs_shape) == 3
+        self.obs_shape = obs_shape
+        self.feature_dim = feature_dim
+
+        self.act = gspaces.rot2dOnR2(N)
+
+        self.convs1 = torch.nn.Sequential(
+            # 128 x 128
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]),
+                            escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), 2)
+            )
+
+            # 64 x 64
+        self.convs2 = torch.nn.Sequential(
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2)
+            )
+
+            # 32 x 32
+        self.convs3 = torch.nn.Sequential(
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2)
+            )
+
+            # 16 x 16
+        self.convs4 = torch.nn.Sequential(
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), 2),
+
+            # 8 x 8
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
+
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=0, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), 2)
+            )
+
+
+            # 3 x 3
+        self.convs5 = torch.nn.Sequential(
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
+                            kernel_size=3, padding=0, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), inplace=True)
+            )
+
+            # 1 x 1
+
+    def forward(self, geo, detach=False):
+        gg = self.convs1(geo)
+        # print('1', gg.tensor.shape)
+        gg = self.convs2(gg)
+        # print('2', gg.tensor.shape)
+        gg = self.convs3(gg)
+        # print('3', gg.tensor.shape)
+        gg = self.convs4(gg)
+        # print('4', gg.tensor.shape)
+        gg = self.convs5(gg)
+        # print('5', gg.tensor.shape)
+        if detach:
+            gg = gg.detach()
+        return gg
+
 # _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder,}
 _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder, 'pixel-equivariant': PixelEncoderEquivariant}
 
@@ -208,9 +222,20 @@ def make_encoder(
     )
 
 if __name__ == '__main__':
-    encoder = PixelEncoderEquivariant(obs_shape=(3, 100, 100), feature_dim=128, num_filters=16, N=4)
-    print(encoder)
-    x = torch.rand(1, 3, 100, 100)
-    act = gspaces.rot2dOnR2(N=4)
+    encoder = PixelEncoderEquivariant(obs_shape=(3, 128, 128), feature_dim=128, num_filters=16, N=4)
+    x = torch.rand(1, 3, 128, 128)
+    act = encoder.act
     y = encoder(escnn.nn.GeometricTensor(x, escnn.nn.FieldType(act, x.shape[1]*[act.trivial_repr])))
-    print(y.shape)
+    print(y.tensor.shape)
+
+    feat_type_in = escnn.nn.FieldType(act, x.shape[1]*[act.trivial_repr])
+    x_ = feat_type_in(x)
+
+    for g in act.testing_elements:
+        print('g', g)
+        x_transformed = x_.transform(g)
+        y_from_x_transformed = encoder(x_transformed)
+
+        y_transformed = y.transform(g)
+        assert torch.allclose(y_from_x_transformed.tensor, y_transformed.tensor)
+        print('='*10)

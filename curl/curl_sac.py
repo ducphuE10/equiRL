@@ -186,7 +186,6 @@ class ActorEquivariant(nn.Module):
         )
 
         self.conv = nn.Sequential(
-            self.encoder, 
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
                             kernel_size=1, padding=0, initialize=True),
@@ -197,18 +196,15 @@ class ActorEquivariant(nn.Module):
         )
 
     def forward(self, obs, compute_pi=True, compute_log_pi=True, detach_encoder=False):
-        print(self.obs_shape[0])
-        # y = encoder(escnn.nn.GeometricTensor(x, escnn.nn.FieldType(act, x.shape[1]*[act.trivial_repr])))
-
+        obs = obs / 255.0
         obs_geo = escnn.nn.GeometricTensor(obs, escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]))
-        conv_out = self.conv(obs_geo).tensor.reshape(-1)
-        print(conv_out.shape)
-        dxy = conv_out[:4]
-        inv_act = conv_out[4:self.action_shape[0]]
-        # concat dxy[0], inv_act[0], dxy[1], inv_act[1], dxy[2], inv_act[2], dxy[3], inv_act[3] to a tensor of shape (8,)
-        mean = torch.cat((dxy[0:1], inv_act[0:1], dxy[1:2], inv_act[1:2], dxy[2:3], inv_act[2:3], dxy[3:4], inv_act[3:4]), dim=0)
-        log_std = conv_out[self.action_shape[0]:]
-        log_std = torch.clamp(log_std, min=self.log_std_min, max=self.log_std_max)
+        # conv_out = self.conv(self.encoder(obs_geo, detach_encoder))
+        conv_out = self.conv(self.encoder(obs_geo, detach_encoder)).tensor.reshape(obs.shape[0], -1)
+        dxy = conv_out[:, :4]
+        inv_act = conv_out[:, 4:self.action_shape[0]]
+        mean = torch.cat((dxy[:, 0:1], inv_act[:, 0:1], dxy[:, 1:2], inv_act[:, 1:2], dxy[:, 2:3], inv_act[:, 2:3], dxy[:, 3:4], inv_act[:, 3:4]), dim=1)
+        log_std = conv_out[:, self.action_shape[0]:]
+        # log_std = torch.clamp(log_std, min=self.log_std_min, max=self.log_std_max)
 
         # constrain log_std inside [log_std_min, log_std_max]
         log_std = torch.tanh(log_std)
@@ -232,6 +228,7 @@ class ActorEquivariant(nn.Module):
         mean, pi, log_pi = squash(mean, pi, log_pi)
 
         return mean, pi, log_pi, log_std
+        return conv_out
 
 
 if __name__ == '__main__':
@@ -373,20 +370,16 @@ class CriticEquivariant(nn.Module):
                             kernel_size=1, padding=0, initialize=True),
         )
     
-    def forward(self, obs, action):
+    def forward(self, obs, action, detach_encoder=False):
+        obs = obs / 255.0
         obs_geo = escnn.nn.GeometricTensor(obs, escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]))
-        conv_out = self.encoder(obs_geo)
-        
+        conv_out = self.encoder(obs_geo, detach=detach_encoder)   
         dxy = torch.Tensor([action[0], action[2], action[4], action[6]]).reshape(1, 4, 1, 1)
         inv_act = torch.Tensor([action[1], action[3], action[5], action[7]]).reshape(1, 4, 1, 1)
-        # concat conv_out, inv_act, dxy
-        print(conv_out.tensor.shape)
-        print(inv_act.shape)
-        print(dxy.shape)
         cat = torch.cat((conv_out.tensor, inv_act, dxy), dim=1)
         cat_geo = escnn.nn.GeometricTensor(cat, escnn.nn.FieldType(self.act, self.encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]))
-        q1 = self.Q1(cat_geo)
-        q2 = self.Q2(cat_geo)
+        q1 = self.Q1(cat_geo).tensor.reshape(obs.shape[0], 1)
+        q2 = self.Q2(cat_geo).tensor.reshape(obs.shape[0], 1)
         return q1, q2
 
 if __name__ == '__main__':
