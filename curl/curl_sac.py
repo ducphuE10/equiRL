@@ -171,7 +171,7 @@ class ActorEquivariant(nn.Module):
     """Equivariant actor network."""
     def __init__(self, obs_shape, action_shape, hidden_dim, encoder_type,
                  encoder_feature_dim, log_std_min, log_std_max, num_layers,
-                 num_filters, N=4):
+                 num_filters, N):
         super().__init__()
 
         self.act = gspaces.rot2dOnR2(N)
@@ -182,7 +182,7 @@ class ActorEquivariant(nn.Module):
         self.log_std_max = log_std_max
 
         self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers, num_filters, output_logits=False
+            encoder_type, obs_shape, encoder_feature_dim, num_layers, num_filters, output_logits=False, N=N
         )
 
         self.conv = nn.Sequential(
@@ -228,7 +228,7 @@ class ActorEquivariant(nn.Module):
         mean, pi, log_pi = squash(mean, pi, log_pi)
 
         return mean, pi, log_pi, log_std
-        return conv_out
+        # return conv_out
 
 class QFunction(nn.Module):
     """MLP for q-function."""
@@ -274,6 +274,7 @@ class Critic(nn.Module):
         self.apply(weight_init)
 
     def forward(self, obs, action, detach_encoder=False):
+        import ipdb; ipdb.set_trace()
         # detach_encoder allows to stop gradient propogation to encoder
         obs = self.encoder(obs, detach=detach_encoder)
 
@@ -319,7 +320,7 @@ class CriticEquivariant(nn.Module):
 
         self.encoder = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
-            num_filters, output_logits=False
+            num_filters, output_logits=False, N=N
         )
         self.act = gspaces.rot2dOnR2(N)
         self.action_shape = action_shape
@@ -443,6 +444,7 @@ class CurlSacAgent(object):
       detach_encoder=False,
       curl_latent_dim=128
     ):
+        # import ipdb; ipdb.set_trace()
         self.args = args
         self.device = device
         self.discount = discount
@@ -550,7 +552,7 @@ class CurlSacAgent(object):
                 obs = torch.from_numpy(obs)
             obs = obs.to(torch.float32).to(self.device)
             obs = obs.unsqueeze(0)
-            mu, pi, _, _ = self.actor(obs, compute_log_pi=False)
+            _, pi, _, _ = self.actor(obs, compute_log_pi=False)
             return pi.cpu().data.numpy().flatten()
 
     def update_critic(self, obs, action, reward, next_obs, not_done, L, step):

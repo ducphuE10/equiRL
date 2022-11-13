@@ -38,7 +38,7 @@
     "use_cached_states": true
   },
   "env_kwargs_camera_name": "default_camera",
-  "env_kwargs_num_variations": 1000,
+  "env_kwargs_num_variations": 1,
   "env_kwargs_observation_mode": "cam_rgb",
   "env_kwargs_render": true,
   "env_name": "ClothFlatten",

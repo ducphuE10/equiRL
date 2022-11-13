@@ -66,7 +66,7 @@ class PixelEncoder(nn.Module):
             conv = torch.relu(self.convs[i](conv))
             self.outputs['conv%s' % (i + 1)] = conv
 
-        h = conv.view(conv.size(0), -1)
+        h = conv.contiguous().view(conv.size(0), -1)
         return h
 
     def forward(self, obs, detach=False):
@@ -128,6 +128,7 @@ class PixelEncoderEquivariant(nn.Module):
     """Equivariant convolutional encoder of pixels observations."""
     def __init__(self, obs_shape, feature_dim=512, num_layers=4, num_filters=32, output_logits=False, N=4):
         super().__init__()
+        # import ipdb; ipdb.set_trace()
 
         assert len(obs_shape) == 3
         self.obs_shape = obs_shape
@@ -214,11 +215,15 @@ _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder, 'pixe
 
 
 def make_encoder(
-    encoder_type, obs_shape, feature_dim, num_layers, num_filters, output_logits=False
+    encoder_type, obs_shape, feature_dim, num_layers, num_filters, output_logits=False, N=4
 ):
     assert encoder_type in _AVAILABLE_ENCODERS
+    if encoder_type != 'pixel-equivariant':
+        return _AVAILABLE_ENCODERS[encoder_type](
+            obs_shape, feature_dim, num_layers, num_filters, output_logits
+        )
     return _AVAILABLE_ENCODERS[encoder_type](
-        obs_shape, feature_dim, num_layers, num_filters, output_logits
+        obs_shape, feature_dim, num_layers, num_filters, output_logits, N
     )
 
 if __name__ == '__main__':
