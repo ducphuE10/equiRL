@@ -1,5 +1,5 @@
-from curl.encoder import PixelEncoderEquivariant
-from curl.curl_sac import ActorEquivariant, CriticEquivariant
+from equi.encoder import PixelEncoderEquivariant
+from equi.sac_agent import ActorEquivariant, CriticEquivariant
 
 import escnn
 from escnn import gspaces

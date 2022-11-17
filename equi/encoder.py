@@ -141,6 +141,7 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]),
                             escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), 2)
             )
@@ -150,6 +151,7 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2)
             )
@@ -159,6 +161,7 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2)
             )
@@ -168,6 +171,7 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), 2),
 
@@ -175,21 +179,23 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
 
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=0, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), 2)
             )
-
 
             # 3 x 3
         self.convs5 = torch.nn.Sequential(
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
                             kernel_size=3, padding=0, initialize=True),
+            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), inplace=True)
             )
 
@@ -197,20 +203,14 @@ class PixelEncoderEquivariant(nn.Module):
 
     def forward(self, geo, detach=False):
         gg = self.convs1(geo)
-        # print('1', gg.tensor.shape)
         gg = self.convs2(gg)
-        # print('2', gg.tensor.shape)
         gg = self.convs3(gg)
-        # print('3', gg.tensor.shape)
         gg = self.convs4(gg)
-        # print('4', gg.tensor.shape)
         gg = self.convs5(gg)
-        # print('5', gg.tensor.shape)
         if detach:
             gg = gg.detach()
         return gg
 
-# _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder,}
 _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder, 'pixel-equivariant': PixelEncoderEquivariant}
 
 

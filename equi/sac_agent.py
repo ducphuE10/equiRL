@@ -2,16 +2,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import copy
-from matplotlib import pyplot as plt
 import time
-import math
 
 import escnn
 from escnn import gspaces
 
-from curl import utils
-from curl.encoder import make_encoder
+from equi import utils
+from equi.encoder import make_encoder
 
 LOG_FREQ = 10000
 
@@ -71,12 +68,18 @@ def weight_init(m):
 
 class Actor(nn.Module):
     """MLP actor network."""
-
     def __init__(
       self, obs_shape, action_shape, hidden_dim, encoder_type,
       encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters
     ):
+        
         super().__init__()
+
+        print('='*80)
+        print('Use actor')
+        print('='*80)
+
+        assert encoder_type == 'pixel'
         self.encoder = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
@@ -98,7 +101,8 @@ class Actor(nn.Module):
       self, obs, compute_pi=True, compute_log_pi=True, detach_encoder=False
     ):
         obs = self.encoder(obs, detach=detach_encoder)
-
+        # print(obs.shape)
+        # exit()
         mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
         # constrain log_std inside [log_std_min, log_std_max]
@@ -174,6 +178,10 @@ class ActorEquivariant(nn.Module):
                  num_filters, N):
         super().__init__()
 
+        print('='*80)
+        print('Use equivariant actor')
+        print('='*80)
+
         self.act = gspaces.rot2dOnR2(N)
 
         self.action_shape = action_shape
@@ -228,11 +236,8 @@ class ActorEquivariant(nn.Module):
         return mean, pi, log_pi, log_std
 
 class QFunction(nn.Module):
-    """MLP for q-function."""
-
     def __init__(self, obs_dim, action_dim, hidden_dim):
         super().__init__()
-
         self.trunk = nn.Sequential(
             nn.Linear(obs_dim + action_dim, hidden_dim), nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
@@ -240,11 +245,14 @@ class QFunction(nn.Module):
         )
 
     def forward(self, obs, action):
+        # import ipdb;ipdb.set_trace()
+        if obs.size(0) != action.size(0):
+            print(obs.size)
+            print(action.size)
         assert obs.size(0) == action.size(0)
 
         obs_action = torch.cat([obs, action], dim=1)
         return self.trunk(obs_action)
-
 
 class Critic(nn.Module):
     """Critic network, employes two q-functions."""
@@ -255,28 +263,36 @@ class Critic(nn.Module):
     ):
         super().__init__()
 
-        self.encoder = make_encoder(
+        print('='*80)
+        print('Use normal critic')
+        print('='*80)
+
+        self.encoder1 = make_encoder(
+            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+            num_filters, output_logits=True
+        )
+
+        self.encoder2 = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
         )
 
         self.Q1 = QFunction(
-            self.encoder.feature_dim, action_shape[0], hidden_dim
+            self.encoder1.feature_dim, action_shape[0], hidden_dim
         )
         self.Q2 = QFunction(
-            self.encoder.feature_dim, action_shape[0], hidden_dim
+            self.encoder2.feature_dim, action_shape[0], hidden_dim
         )
 
         self.outputs = dict()
         self.apply(weight_init)
 
     def forward(self, obs, action, detach_encoder=False):
-        import ipdb; ipdb.set_trace()
         # detach_encoder allows to stop gradient propogation to encoder
-        obs = self.encoder(obs, detach=detach_encoder)
-
-        q1 = self.Q1(obs, action)
-        q2 = self.Q2(obs, action)
+        obs1 = self.encoder1(obs, detach=detach_encoder)
+        obs2 = self.encoder2(obs, detach=detach_encoder)
+        q1 = self.Q1(obs1, action)
+        q2 = self.Q2(obs2, action)
 
         self.outputs['q1'] = q1
         self.outputs['q2'] = q2
@@ -285,7 +301,6 @@ class Critic(nn.Module):
 
     def forward_from_feature(self, feature, action):
         # detach_encoder allows to stop gradient propogation to encoder
-
         q1 = self.Q1(feature, action)
         q2 = self.Q2(feature, action)
 
@@ -298,7 +313,8 @@ class Critic(nn.Module):
         if step % log_freq != 0:
             return
 
-        self.encoder.log(L, step, log_freq)
+        self.encoder1.log(L, step, log_freq)
+        self.encoder2.log(L, step, log_freq)
 
         for k, v in self.outputs.items():
             L.log_histogram('train_critic/%s_hist' % k, v, step)
@@ -314,6 +330,10 @@ class CriticEquivariant(nn.Module):
       encoder_feature_dim, num_layers, num_filters, N
     ):
         super().__init__()
+
+        print('=' * 80)
+        print('Use equivariant critic')
+        print('=' * 80)
 
         self.encoder = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
@@ -360,55 +380,7 @@ class CriticEquivariant(nn.Module):
         q2 = self.Q2(cat_geo).tensor.reshape(batch_size, 1)
         return q1, q2
 
-class CURL(nn.Module):
-    """
-    CURL
-    """
-
-    def __init__(self, obs_shape, z_dim, batch_size, critic, critic_target, output_type="continuous"):
-        super(CURL, self).__init__()
-        self.batch_size = batch_size
-
-        self.encoder = critic.encoder
-
-        self.encoder_target = critic_target.encoder
-
-        self.W = nn.Parameter(torch.rand(z_dim, z_dim))
-        self.output_type = output_type
-
-    def encode(self, x, detach=False, ema=False):
-        """
-        Encoder: z_t = e(x_t)
-        :param x: x_t, x y coordinates
-        :return: z_t, value in r2
-        """
-        if ema:
-            with torch.no_grad():
-                z_out = self.encoder_target(x)
-        else:
-            z_out = self.encoder(x)
-
-        if detach:
-            z_out = z_out.detach()
-        return z_out
-
-    def compute_logits(self, z_a, z_pos):
-        """
-        Uses logits trick for CURL:
-        - compute (B,B) matrix z_a (W z_pos.T)
-        - positives are all diagonal elements
-        - negatives are all other elements
-        - to compute loss use multiclass cross entropy with identity matrix for labels
-        """
-        Wz = torch.matmul(self.W, z_pos.T)  # (z_dim,B)
-        logits = torch.matmul(z_a, Wz)  # (B,B)
-        logits = logits - torch.max(logits, 1)[0][:, None]
-        return logits
-
-
-class CurlSacAgent(object):
-    """CURL representation learning with SAC."""
-
+class SacAgent(object):
     def __init__(
       self,
       obs_shape,
@@ -430,7 +402,7 @@ class CurlSacAgent(object):
       critic_beta=0.9,
       critic_tau=0.005,
       critic_target_update_freq=2,
-      encoder_type='pixel',
+      encoder_type='identity',
       encoder_feature_dim=50,
       encoder_lr=1e-3,
       encoder_tau=0.005,
@@ -440,8 +412,8 @@ class CurlSacAgent(object):
       log_interval=100,
       detach_encoder=False,
       curl_latent_dim=128
+
     ):
-        # import ipdb; ipdb.set_trace()
         self.args = args
         self.device = device
         self.discount = discount
@@ -456,28 +428,32 @@ class CurlSacAgent(object):
         self.detach_encoder = detach_encoder
         self.encoder_type = encoder_type
         self.alpha_fixed = alpha_fixed
-
-        self.actor = Actor(
-            obs_shape, action_shape, hidden_dim, encoder_type,
+        # import ipdb;ipdb.set_trace()
+        
+        # build equivariant actor model
+        self.actor = ActorEquivariant(
+            obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
             encoder_feature_dim, actor_log_std_min, actor_log_std_max,
-            num_layers, num_filters
+            num_layers, num_filters, 12).to(device)
+
+        # build equivariant critic model
+        self.critic = CriticEquivariant(
+            obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
+            encoder_feature_dim, num_layers, num_filters, 12
         ).to(device)
 
-        self.critic = Critic(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, num_layers, num_filters
+        # build equivariant encoder model
+        self.critic_target = CriticEquivariant(
+            obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
+            encoder_feature_dim, num_layers, num_filters, 12
         ).to(device)
 
-        self.critic_target = Critic(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, num_layers, num_filters
-        ).to(device)
-
+        # copy critic parameters to critic target
         self.critic_target.load_state_dict(self.critic.state_dict())
 
-        # tie encoders between actor and critic, and CURL and critic
-        self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
-
+        # Tie encoder between actor and critic
+        self.actor.encoder.load_state_dict(self.critic.encoder.state_dict())
+        
         self.log_alpha = torch.tensor(np.log(init_temperature)).to(device)
         self.log_alpha.requires_grad = True
         # set target entropy to -|A|
@@ -500,30 +476,14 @@ class CurlSacAgent(object):
             self.actor_lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.actor_optimizer, milestones=np.arange(15, 150, 15) * 5000, gamma=0.5)
             self.critic_lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.critic_optimizer, milestones=np.arange(15, 150, 15) * 10000, gamma=0.5)
 
-        if self.encoder_type == 'pixel':
-            # create CURL encoder (the 128 batch size is probably unnecessary)
-            self.CURL = CURL(obs_shape, encoder_feature_dim,
-                             self.curl_latent_dim, self.critic, self.critic_target, output_type='continuous').to(self.device)
-
-            # optimizer for critic encoder for reconstruction loss
-            self.encoder_optimizer = torch.optim.Adam(
-                self.critic.encoder.parameters(), lr=encoder_lr
-            )
-
-            self.cpc_optimizer = torch.optim.Adam(
-                self.CURL.parameters(), lr=encoder_lr
-            )
-        self.cross_entropy_loss = nn.CrossEntropyLoss()
-
         self.train()
         self.critic_target.train()
 
     def train(self, training=True):
+        # import ipdb;ipdb.set_trace()
         self.training = training
         self.actor.train(training)
         self.critic.train(training)
-        if self.encoder_type == 'pixel':
-            self.CURL.train(training)
 
     @property
     def alpha(self):
@@ -541,8 +501,11 @@ class CurlSacAgent(object):
             return mu.cpu().data.numpy().flatten()
 
     def sample_action(self, obs):
-        if obs.shape[-1] != self.image_size:
-            obs = utils.center_crop_image(obs, self.image_size)
+        # if obs.shape[-1] != self.image_size:
+            # obs = utils.center_crop_image(obs, self.image_size)
+        
+        if obs.shape[0] == 1:
+            obs = obs[0]
 
         with torch.no_grad():
             if not isinstance(obs, torch.Tensor):
@@ -556,26 +519,14 @@ class CurlSacAgent(object):
         with torch.no_grad():
             _, policy_action, log_pi, _ = self.actor(next_obs)
             target_Q1, target_Q2 = self.critic_target(next_obs, policy_action)
-            target_V = torch.min(target_Q1,
-                                 target_Q2) - self.alpha.detach() * log_pi
+            target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_pi
             target_Q = reward + (not_done * self.discount * target_V)
-            # comp_Q = reward + (not_done * self.discount * torch.min(target_Q1, target_Q2))
-            # comp_E = reward + (not_done * self.discount * (- self.alpha.detach() * log_pi))
 
         # get current Q estimates
-        current_Q1, current_Q2 = self.critic(
-            obs, action, detach_encoder=self.detach_encoder)
-        critic_loss = F.mse_loss(current_Q1,
-                                 target_Q) + F.mse_loss(current_Q2, target_Q)
+        current_Q1, current_Q2 = self.critic(obs, action, detach_encoder=self.detach_encoder)
+        critic_loss = F.mse_loss(current_Q1,target_Q) + F.mse_loss(current_Q2, target_Q)
         if step % self.log_interval == 0:
             L.log('train_critic/loss', critic_loss, step)
-            # L.log('train/q1', torch.mean(current_Q1), step)
-            # L.log('train/comp_Q', torch.mean(comp_Q), step)
-            # L.log('train/comp_E', torch.mean(comp_E), step)
-
-            # critic_stats = get_optimizer_stats(self.critic_optimizer)
-            # for key, val in critic_stats.items():
-            #     L.log('train/critic_optim/' + key, val, step)
 
         # Optimize the critic
         self.critic_optimizer.zero_grad()
@@ -587,12 +538,12 @@ class CurlSacAgent(object):
             L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
 
 
-        self.critic.log(L, step)
+        # self.critic.log(L, step)
 
     def update_actor_and_alpha(self, obs, L, step):
         # detach encoder, so we don't update it with the actor loss
-        _, pi, log_pi, log_std = self.actor(obs, detach_encoder=True)
-        actor_Q1, actor_Q2 = self.critic(obs, pi, detach_encoder=True)
+        _, pi, log_pi, log_std = self.actor(obs)
+        actor_Q1, actor_Q2 = self.critic(obs, pi)
 
         actor_Q = torch.min(actor_Q1, actor_Q2)
         actor_loss = (self.alpha.detach() * log_pi - actor_Q).mean()
@@ -614,14 +565,7 @@ class CurlSacAgent(object):
             self.actor_lr_scheduler.step()
             L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
 
-
-        self.actor.log(L, step)
-
-        # if step % self.log_interval == 0:
-        #     actor_stats = get_optimizer_stats(self.actor_optimizer)
-        #     for key, val in actor_stats.items():
-        #         L.log('train/actor_optim/' + key, val, step)
-
+        # self.actor.log(L, step)
 
         if not self.alpha_fixed:
             self.log_alpha_optimizer.zero_grad()
@@ -633,57 +577,24 @@ class CurlSacAgent(object):
             alpha_loss.backward()
             self.log_alpha_optimizer.step()
 
-    def update_cpc(self, obs_anchor, obs_pos, cpc_kwargs, L, step):
-
-        z_a = self.CURL.encode(obs_anchor)
-        z_pos = self.CURL.encode(obs_pos, ema=True)
-
-        logits = self.CURL.compute_logits(z_a, z_pos)
-        labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss = self.cross_entropy_loss(logits, labels)
-
-        self.encoder_optimizer.zero_grad()
-        self.cpc_optimizer.zero_grad()
-        loss.backward()
-
-        self.encoder_optimizer.step()
-        self.cpc_optimizer.step()
-        if step % self.log_interval == 0:
-            L.log('train/curl_loss', loss, step)
-
     def update(self, replay_buffer, L, step):
-        if self.encoder_type == 'pixel':
-            obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_cpc()
-        else:
-            obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
+        #sample from buffer
+        # if self.encoder_type == 'pixel':
+        #     obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_sac()
+        # else:
+        obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
 
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)
-
-        start_time = time.time()
+        #----Update----
+        #Critic
         self.update_critic(obs, action, reward, next_obs, not_done, L, step)
-        # print('critic update time:', time.time() - start_time)
-        if step % self.actor_update_freq == 0:
-            start_time = time.time()
+        #Actor
+        if step % self.actor_update_freq == 0: #default actor_update_freq = 2
             self.update_actor_and_alpha(obs, L, step)
-            # print('actor update time:', time.time() - start_time)
-
+        #soft update
         if step % self.critic_target_update_freq == 0:
-            utils.soft_update_params(
-                self.critic.Q1, self.critic_target.Q1, self.critic_tau
-            )
-            utils.soft_update_params(
-                self.critic.Q2, self.critic_target.Q2, self.critic_tau
-            )
-            utils.soft_update_params(
-                self.critic.encoder, self.critic_target.encoder,
-                self.encoder_tau
-            )
-
-        if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
-            start_time = time.time()
-            obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
-            self.update_cpc(obs_anchor, obs_pos, cpc_kwargs, L, step)
+            utils.soft_update_params(self.critic, self.critic_target,self.critic_tau)
 
     def save(self, model_dir, step):
         torch.save(
@@ -691,14 +602,6 @@ class CurlSacAgent(object):
         )
         torch.save(
             self.critic.state_dict(), '%s/critic_%s.pt' % (model_dir, step)
-        )
-        
-        if self.encoder_type == 'pixel':
-            self.save_curl(model_dir, step)
-
-    def save_curl(self, model_dir, step):
-        torch.save(
-            self.CURL.state_dict(), '%s/curl_%s.pt' % (model_dir, step)
         )
 
     def load(self, model_dir, step):
@@ -708,8 +611,3 @@ class CurlSacAgent(object):
         self.critic.load_state_dict(
             torch.load('%s/critic_%s.pt' % (model_dir, step))
         )
-        
-        if self.encoder_type == 'pixel':    
-            self.CURL.load_state_dict(
-                torch.load('%s/curl_%s.pt' % (model_dir, step))
-            )
