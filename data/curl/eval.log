@@ -1,0 +1,21 @@
+{"episode": 0.0, "episode_reward": 330.721972370926, "info_performance_mean": 0.06614439189434052, "info_performance_final": 0.06614436209201813, "info_normalized_performance_mean": -4.382486076792702e-05, "info_normalized_performance_final": -4.403066850500181e-05, "eval_time": 62.44330048561096, "mean_episode_reward": 330.721972370926, "best_episode_reward": 330.8120928288034, "step": 0}
+{"step": 100}
+{"step": 200}
+{"step": 300}
+{"step": 400}
+{"step": 500}
+{"step": 600}
+{"step": 700}
+{"step": 800}
+{"step": 900}
+{"step": 1000}
+{"step": 1100}
+{"step": 1200}
+{"step": 1300}
+{"step": 1400}
+{"step": 1500}
+{"step": 1600}
+{"step": 1700}
+{"step": 1800}
+{"step": 1900}
+{"step": 2000}

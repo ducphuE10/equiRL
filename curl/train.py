@@ -196,13 +196,22 @@ def main(args):
         obs_shape = env.observation_space.shape
         pre_aug_obs_shape = obs_shape
 
-    replay_buffer = utils.ReplayBuffer(
+    # replay_buffer = utils.ReplayBuffer(
+    #     obs_shape=pre_aug_obs_shape,
+    #     action_shape=action_shape,
+    #     capacity=args.replay_buffer_capacity,
+    #     batch_size=args.batch_size,
+    #     device=device,
+    #     image_size=args.image_size,
+    # )
+    replay_buffer = utils.ReplayBufferAugmented(
         obs_shape=pre_aug_obs_shape,
         action_shape=action_shape,
         capacity=args.replay_buffer_capacity,
         batch_size=args.batch_size,
         device=device,
         image_size=args.image_size,
+        aug_n = 4
     )
 
     agent = make_agent(
@@ -259,6 +268,7 @@ def main(args):
             for _ in range(num_updates):
                 agent.update(replay_buffer, L, step)
         next_obs, reward, done, info = env.step(action)
+        # import ipdb; ipdb.set_trace()
 
         # allow infinit bootstrap
         ep_info.append(info)

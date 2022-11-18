@@ -271,7 +271,7 @@ class Critic(nn.Module):
         self.apply(weight_init)
 
     def forward(self, obs, action, detach_encoder=False):
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         # detach_encoder allows to stop gradient propogation to encoder
         obs = self.encoder(obs, detach=detach_encoder)
 

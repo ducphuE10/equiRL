@@ -175,7 +175,6 @@ class QFunction(nn.Module):
         )
 
     def forward(self, obs, action):
-        # import ipdb;ipdb.set_trace()
         if obs.size(0) != action.size(0):
             print(obs.size)
             print(action.size)
