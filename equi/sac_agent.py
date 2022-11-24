@@ -245,7 +245,6 @@ class QFunction(nn.Module):
         )
 
     def forward(self, obs, action):
-        # import ipdb;ipdb.set_trace()
         if obs.size(0) != action.size(0):
             print(obs.size)
             print(action.size)
@@ -411,7 +410,8 @@ class SacAgent(object):
       cpc_update_freq=1,
       log_interval=100,
       detach_encoder=False,
-      curl_latent_dim=128
+      curl_latent_dim=128,
+      num_rotations=8
 
     ):
         self.args = args
@@ -434,19 +434,23 @@ class SacAgent(object):
         self.actor = ActorEquivariant(
             obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
             encoder_feature_dim, actor_log_std_min, actor_log_std_max,
-            num_layers, num_filters, 12).to(device)
+            num_layers, num_filters, num_rotations)
+        self.actor = nn.DataParallel(self.actor)
+        self.actor.to(device)
 
         # build equivariant critic model
         self.critic = CriticEquivariant(
             obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
-            encoder_feature_dim, num_layers, num_filters, 12
-        ).to(device)
+            encoder_feature_dim, num_layers, num_filters, num_rotations)
+        self.critic = nn.DataParallel(self.critic)
+        self.critic.to(device)
 
         # build equivariant encoder model
         self.critic_target = CriticEquivariant(
             obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
-            encoder_feature_dim, num_layers, num_filters, 12
-        ).to(device)
+            encoder_feature_dim, num_layers, num_filters, num_rotations)
+        self.critic_target = nn.DataParallel(self.critic_target)
+        self.critic_target.to(device)
 
         # copy critic parameters to critic target
         self.critic_target.load_state_dict(self.critic.state_dict())

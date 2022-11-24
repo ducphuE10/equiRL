@@ -48,5 +48,12 @@ DEFAULT_CONFIG = {
     'save_video': False,
     'save_model': False,
     'detach_encoder': False,
-    'log_interval': 1
+    'log_interval': 1,
+    # augment transition
+    'aug_transition': True,
+    'aug_n': 4,
+    'aug_type': 'so2',
+    # wandb
+    'wandb': True,
+    'wandb_seed': 0
 }

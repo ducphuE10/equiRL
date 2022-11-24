@@ -17,6 +17,7 @@ from envs.env import Env
 from softgym.utils.visualization import save_numpy_as_gif, make_grid
 import matplotlib.pyplot as plt
 
+import wandb
 
 def update_env_kwargs(vv):
     new_vv = vv.copy()
@@ -80,7 +81,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
         all_frames = []
         plt.figure()
         for i in range(num_episodes):
-            obs = env.reset()
+            obs = env.reset(eval_flag=True)
             done = False
             episode_reward = 0
             ep_info = []
@@ -112,6 +113,9 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
 
             L.log('eval/' + prefix + 'episode_reward', episode_reward, step)
             all_ep_rewards.append(episode_reward)
+        plt.xlabel('Timestep')
+        plt.ylabel('Reward')
+        plt.title('Reward over time')
         plt.savefig(os.path.join(video_dir, '%d.png' % step))
         all_frames = np.array(all_frames).swapaxes(0, 1)
         all_frames = np.array([make_grid(np.array(frame), nrow=2, padding=3) for frame in all_frames])
@@ -119,6 +123,8 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
 
         for key, val in get_info_stats(infos).items():
             L.log('eval/info_' + prefix + key, val, step)
+             if args.wandb:
+                wandb.log({key:val},step = step)
         L.log('eval/' + prefix + 'eval_time', time.time() - start_time, step)
         mean_ep_reward = np.mean(all_ep_rewards)
         best_ep_reward = np.max(all_ep_rewards)
@@ -160,7 +166,8 @@ def make_agent(obs_shape, action_shape, args, device):
             num_filters=args.num_filters,
             log_interval=args.log_interval,
             detach_encoder=args.detach_encoder,
-            curl_latent_dim=args.curl_latent_dim
+            curl_latent_dim=args.curl_latent_dim,
+            num_rotations=args.num_rotations
         )
     else:
         assert 'agent is not supported: %s' % args.agent
@@ -172,13 +179,19 @@ def main(args):
     utils.set_seed_everywhere(args.seed)
 
     args.__dict__ = update_env_kwargs(args.__dict__)  # Update env_kwargs
+    
+    if args.wandb:
+        # ed44c646a708f75a7fe4e39aee3844f8bfe44858
+        group_name = args.exp_name + '_aug' if args.aug_transition else args.exp_name + '_no_aug'
+        wandb.init(project=args.env_name, settings=wandb.Settings(_disable_stats=True), group=group_name, name=f's{args.wandb_seed}', entity='longdinh')
+    else:
+        print('Not using wandb')
 
     symbolic = args.env_kwargs['observation_mode'] != 'cam_rgb'
     args.encoder_type = 'identity' if symbolic else 'pixel'
 
     env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
-    print(env.observation_space.shape)
     env.seed(args.seed)
 
     # make directory
@@ -186,32 +199,40 @@ def main(args):
     ts = time.strftime("%m-%d", ts)
 
     args.work_dir = logger.get_dir()
+    video_dir = utils.make_dir(os.path.join(args.work_dir, f's{args.wandb_seed}', 'video'))
+    model_dir = utils.make_dir(os.path.join(args.work_dir, f's{args.wandb_seed}', 'model'))
+    buffer_dir = utils.make_dir(os.path.join(args.work_dir, f's{args.wandb_seed}', 'buffer'))
 
-    video_dir = utils.make_dir(os.path.join(args.work_dir, 'video'))
-    model_dir = utils.make_dir(os.path.join(args.work_dir, 'model'))
-    buffer_dir = utils.make_dir(os.path.join(args.work_dir, 'buffer'))
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1,2,3' if torch.cuda.is_available() else 'cpu')
 
     action_shape = env.action_space.shape
 
     if args.encoder_type == 'pixel':
-        # obs_shape = (3, args.image_size, args.image_size)
-        # pre_aug_obs_shape = (3, args.pre_transform_image_size, args.pre_transform_image_size)
         obs_shape = (3,env.observation_space.shape[-2],env.observation_space.shape[-3])
         pre_aug_obs_shape = obs_shape
     else:
         obs_shape = env.observation_space.shape
         pre_aug_obs_shape = obs_shape
-    # print(pre_aug_obs_shape)
-    replay_buffer = utils.ReplayBuffer(
-        obs_shape=pre_aug_obs_shape,
-        action_shape=action_shape,
-        capacity=args.replay_buffer_capacity,
-        batch_size=args.batch_size,
-        device=device,
-        image_size=args.image_size,
-    )
+    
+    if args.aug_transition:
+        replay_buffer = utils.ReplayBufferAugmented(
+            obs_shape=pre_aug_obs_shape,
+            action_shape=action_shape,
+            capacity=args.replay_buffer_capacity,
+            batch_size=args.batch_size,
+            device=device,
+            image_size=args.image_size,
+            aug_n = args.aug_n,
+        )
+    else:
+        replay_buffer = utils.ReplayBuffer(
+            obs_shape=pre_aug_obs_shape,
+            action_shape=action_shape,
+            capacity=args.replay_buffer_capacity,
+            batch_size=args.batch_size,
+            device=device,
+            image_size=args.image_size,
+        )
 
     agent = make_agent(
         obs_shape=obs_shape,
@@ -220,14 +241,13 @@ def main(args):
         device=device
     )
     
-    L = Logger(args.work_dir, use_tb=args.save_tb, chester_logger=logger)
+    L = Logger(os.path.join(args.work_dir, f's{args.wandb_seed}'), use_tb=args.save_tb, chester_logger=logger)
     
     episode, episode_reward, done, ep_info = 0, 0, True, []
     start_time = time.time()
     # exit()
     for step in range(args.num_train_steps):
         # evaluate agent periodically
-
         if step % args.eval_freq == 0:
             L.log('eval/episode', episode, step)
             evaluate(env, agent, video_dir, args.num_eval_episodes, L, step, args)
@@ -235,7 +255,7 @@ def main(args):
                 agent.save(model_dir, step)
             if args.save_buffer:
                 replay_buffer.save(buffer_dir)
-            pass
+            
         if done:
             if step > 0:
                 if step % args.log_interval == 0:

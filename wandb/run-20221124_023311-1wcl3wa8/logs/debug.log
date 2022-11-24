@@ -1,0 +1,33 @@
+2022-11-24 02:33:11,882 INFO    MainThread:1668729 [wandb_setup.py:_flush():68] Configure stats pid to 1668729
+2022-11-24 02:33:11,883 INFO    MainThread:1668729 [wandb_setup.py:_flush():68] Loading settings from /home/hnguyen/.config/wandb/settings
+2022-11-24 02:33:11,883 INFO    MainThread:1668729 [wandb_setup.py:_flush():68] Loading settings from /home/hnguyen/cloth_smoothing/SAC/wandb/settings
+2022-11-24 02:33:11,884 INFO    MainThread:1668729 [wandb_setup.py:_flush():68] Loading settings from environment variables: {'_require_service': 'True'}
+2022-11-24 02:33:11,884 INFO    MainThread:1668729 [wandb_setup.py:_flush():68] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2022-11-24 02:33:11,885 INFO    MainThread:1668729 [wandb_init.py:_log_setup():476] Logging user logs to /home/hnguyen/cloth_smoothing/SAC/wandb/run-20221124_023311-1wcl3wa8/logs/debug.log
+2022-11-24 02:33:11,886 INFO    MainThread:1668729 [wandb_init.py:_log_setup():477] Logging internal logs to /home/hnguyen/cloth_smoothing/SAC/wandb/run-20221124_023311-1wcl3wa8/logs/debug-internal.log
+2022-11-24 02:33:11,887 INFO    MainThread:1668729 [wandb_init.py:_jupyter_setup():426] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x7f0cd96e6a00>
+2022-11-24 02:33:11,889 INFO    MainThread:1668729 [wandb_init.py:init():516] calling init triggers
+2022-11-24 02:33:11,889 INFO    MainThread:1668729 [wandb_init.py:init():519] wandb.init called with sweep_config: {}
+config: {}
+2022-11-24 02:33:11,890 INFO    MainThread:1668729 [wandb_init.py:init():569] starting backend
+2022-11-24 02:33:11,890 INFO    MainThread:1668729 [wandb_init.py:init():573] setting up manager
+2022-11-24 02:33:11,916 INFO    MainThread:1668729 [backend.py:_multiprocessing_setup():102] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2022-11-24 02:33:11,942 INFO    MainThread:1668729 [wandb_init.py:init():580] backend started and connected
+2022-11-24 02:33:11,965 INFO    MainThread:1668729 [wandb_run.py:_label_probe_notebook():1113] probe notebook
+2022-11-24 02:33:11,968 INFO    MainThread:1668729 [wandb_run.py:_label_probe_notebook():1123] Unable to probe notebook: 'NoneType' object has no attribute 'get'
+2022-11-24 02:33:11,968 INFO    MainThread:1668729 [wandb_init.py:init():658] updated telemetry
+2022-11-24 02:33:12,030 INFO    MainThread:1668729 [wandb_init.py:init():693] communicating run to backend with 60 second timeout
+2022-11-24 02:33:12,125 ERROR   MainThread:1668729 [wandb_init.py:init():1105] error
+Traceback (most recent call last):
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 1078, in init
+    run = wi.init()
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 696, in init
+    handle = backend.interface.deliver_run(run)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/wandb/sdk/interface/interface.py", line 719, in deliver_run
+    run = self._make_run(run_obj)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/wandb/sdk/interface/interface.py", line 173, in _make_run
+    run._make_proto_run(proto_run)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 664, in _make_proto_run
+    run.display_name = self._name
+TypeError: 1 has type int, but expected one of: bytes, unicode
+2022-11-24 02:34:32,715 WARNING MsgRouterThr:1668729 [router.py:message_loop():77] message_loop has been closed

@@ -1,0 +1,94 @@
+2022-11-24 02:20:16,187 INFO    StreamThr :1666990 [internal.py:wandb_internal():88] W&B internal server running at pid: 1666990, started at: 2022-11-24 02:20:16.185945
+2022-11-24 02:20:16,190 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: status
+2022-11-24 02:20:16,193 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: status
+2022-11-24 02:20:16,195 DEBUG   SenderThread:1666990 [sender.py:send():303] send: header
+2022-11-24 02:20:16,196 INFO    WriterThread:1666990 [datastore.py:open_for_write():75] open: /home/hnguyen/cloth_smoothing/SAC/wandb/run-20221124_022016-125re1qc/run-125re1qc.wandb
+2022-11-24 02:20:18,233 DEBUG   SenderThread:1666990 [sender.py:send():303] send: exit
+2022-11-24 02:20:18,233 INFO    SenderThread:1666990 [sender.py:send_exit():442] handling exit code: 1
+2022-11-24 02:20:18,234 INFO    SenderThread:1666990 [sender.py:send_exit():444] handling runtime: 0
+2022-11-24 02:20:18,234 INFO    SenderThread:1666990 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2022-11-24 02:20:18,234 INFO    SenderThread:1666990 [sender.py:send_exit():450] send defer
+2022-11-24 02:20:18,235 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,235 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 0
+2022-11-24 02:20:18,235 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,235 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 0
+2022-11-24 02:20:18,236 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 1
+2022-11-24 02:20:18,236 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,236 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 1
+2022-11-24 02:20:18,236 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,237 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 1
+2022-11-24 02:20:18,237 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 2
+2022-11-24 02:20:18,237 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,237 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 2
+2022-11-24 02:20:18,238 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,238 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 2
+2022-11-24 02:20:18,238 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 3
+2022-11-24 02:20:18,238 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,239 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 3
+2022-11-24 02:20:18,239 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,239 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 3
+2022-11-24 02:20:18,239 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 4
+2022-11-24 02:20:18,240 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,240 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 4
+2022-11-24 02:20:18,240 DEBUG   SenderThread:1666990 [sender.py:send():303] send: summary
+2022-11-24 02:20:18,241 INFO    SenderThread:1666990 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2022-11-24 02:20:18,241 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,241 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 4
+2022-11-24 02:20:18,241 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 5
+2022-11-24 02:20:18,242 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,242 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 5
+2022-11-24 02:20:18,242 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,243 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 5
+2022-11-24 02:20:18,243 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 6
+2022-11-24 02:20:18,243 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,243 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 6
+2022-11-24 02:20:18,244 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,244 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 6
+2022-11-24 02:20:18,244 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 7
+2022-11-24 02:20:18,245 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,245 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 7
+2022-11-24 02:20:18,245 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,245 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 7
+2022-11-24 02:20:18,245 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 8
+2022-11-24 02:20:18,246 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,246 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 8
+2022-11-24 02:20:18,246 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,246 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 8
+2022-11-24 02:20:18,246 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 9
+2022-11-24 02:20:18,247 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,247 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 9
+2022-11-24 02:20:18,248 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,248 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 9
+2022-11-24 02:20:18,248 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 10
+2022-11-24 02:20:18,248 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,249 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 10
+2022-11-24 02:20:18,249 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,249 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 10
+2022-11-24 02:20:18,249 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 11
+2022-11-24 02:20:18,250 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,250 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 11
+2022-11-24 02:20:18,250 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,250 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 11
+2022-11-24 02:20:18,250 INFO    SenderThread:1666990 [sender.py:transition_state():463] send defer: 12
+2022-11-24 02:20:18,251 DEBUG   SenderThread:1666990 [sender.py:send():303] send: final
+2022-11-24 02:20:18,252 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: defer
+2022-11-24 02:20:18,252 DEBUG   SenderThread:1666990 [sender.py:send():303] send: footer
+2022-11-24 02:20:18,252 INFO    HandlerThread:1666990 [handler.py:handle_request_defer():162] handle defer: 12
+2022-11-24 02:20:18,252 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: defer
+2022-11-24 02:20:18,252 INFO    SenderThread:1666990 [sender.py:send_request_defer():459] handle sender defer: 12
+2022-11-24 02:20:18,254 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: poll_exit
+2022-11-24 02:20:18,254 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: poll_exit
+2022-11-24 02:20:18,255 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: poll_exit
+2022-11-24 02:20:18,256 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: poll_exit
+2022-11-24 02:20:18,257 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: server_info
+2022-11-24 02:20:18,257 DEBUG   SenderThread:1666990 [sender.py:send_request():317] send_request: server_info
+2022-11-24 02:20:18,263 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: get_summary
+2022-11-24 02:20:18,264 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: sampled_history
+2022-11-24 02:20:18,430 INFO    MainThread:1666990 [wandb_run.py:_footer_history_summary_info():3377] rendering history
+2022-11-24 02:20:18,430 INFO    MainThread:1666990 [wandb_run.py:_footer_history_summary_info():3409] rendering summary
+2022-11-24 02:20:18,430 INFO    MainThread:1666990 [wandb_run.py:_footer_sync_info():3333] logging synced files
+2022-11-24 02:20:18,431 DEBUG   HandlerThread:1666990 [handler.py:handle_request():139] handle_request: shutdown
+2022-11-24 02:20:18,431 INFO    HandlerThread:1666990 [handler.py:finish():814] shutting down handler
+2022-11-24 02:20:19,252 INFO    WriterThread:1666990 [datastore.py:close():279] close: /home/hnguyen/cloth_smoothing/SAC/wandb/run-20221124_022016-125re1qc/run-125re1qc.wandb
+2022-11-24 02:20:19,429 INFO    SenderThread:1666990 [sender.py:finish():1331] shutting down sender
+2022-11-24 02:20:20,200 INFO    MainThread:1666990 [internal.py:handle_exit():78] Internal process exited

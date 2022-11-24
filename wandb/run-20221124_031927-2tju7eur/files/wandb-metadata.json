@@ -1,0 +1,157 @@
+{
+    "os": "Linux-5.8.0-50-generic-x86_64-with-glibc2.17",
+    "python": "3.8.13",
+    "heartbeatAt": "2022-11-24T08:19:27.570782",
+    "startedAt": "2022-11-24T08:19:27.143162",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "curl/run_curl.py",
+    "codePath": "curl/run_curl.py",
+    "git": {
+        "remote": "https://github.com/ducphuE10/SAC.git",
+        "commit": "f411b2d9edde6466b4183b52bdef4c1eea94b8a3"
+    },
+    "email": "thandongdoinon98@gmail.com",
+    "root": "/home/hnguyen/cloth_smoothing/SAC",
+    "host": "theseus",
+    "username": "hnguyen",
+    "executable": "/home/hnguyen/miniconda3/envs/softgym/bin/python",
+    "cpu_count": 10,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 1.2049499999999995,
+        "min": 1200.0,
+        "max": 4120.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.199,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        },
+        {
+            "current": 1.2,
+            "min": 1200.0,
+            "max": 4100.0
+        }
+    ],
+    "disk": {
+        "total": 1832.2804870605469,
+        "used": 1149.0502128601074
+    },
+    "gpu": "GeForce RTX 2080",
+    "gpu_count": 4,
+    "gpu_devices": [
+        {
+            "name": "GeForce RTX 2080",
+            "memory_total": 8370061312
+        },
+        {
+            "name": "GeForce RTX 2080 Ti",
+            "memory_total": 11554717696
+        },
+        {
+            "name": "GeForce RTX 2080 Ti",
+            "memory_total": 11554717696
+        },
+        {
+            "name": "GeForce RTX 2080 Ti",
+            "memory_total": 11553341440
+        }
+    ],
+    "memory": {
+        "total": 125.48964309692383
+    }
+}

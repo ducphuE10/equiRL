@@ -1,0 +1,52 @@
+1 config and state pairs loaded from /home/hnguyen/cloth_smoothing/SAC/softgym/softgym/envs/../cached_initial_states/cloth_flatten_init_states.pkl
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(195)main()
+    194     import ipdb; ipdb.set_trace()
+--> 195     args.work_dir = logger.get_dir()
+    196     args.work_dir = os.path.join(args.work_dir, f's{args.wandb_seed}')
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(196)main()
+    195     args.work_dir = logger.get_dir()
+--> 196     args.work_dir = os.path.join(args.work_dir, f's{args.wandb_seed}')
+    197     video_dir = utils.make_dir(os.path.join(args.work_dir, 'video'))
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(197)main()
+    196     args.work_dir = os.path.join(args.work_dir, f's{args.wandb_seed}')
+--> 197     video_dir = utils.make_dir(os.path.join(args.work_dir, 'video'))
+    198     model_dir = utils.make_dir(os.path.join(args.work_dir, 'model'))
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(198)main()
+    197     video_dir = utils.make_dir(os.path.join(args.work_dir, 'video'))
+--> 198     model_dir = utils.make_dir(os.path.join(args.work_dir, 'model'))
+    199     buffer_dir = utils.make_dir(os.path.join(args.work_dir, 'buffer'))
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(199)main()
+    198     model_dir = utils.make_dir(os.path.join(args.work_dir, 'model'))
+--> 199     buffer_dir = utils.make_dir(os.path.join(args.work_dir, 'buffer'))
+    200
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(201)main()
+    200
+--> 201     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    202
+./data/curl/s0
+./data/curl/s0/video
+./data/curl/s0/buffer
+./data/curl/s0/buffer
+Traceback (most recent call last):
+  File "curl/run_curl.py", line 94, in <module>
+    main()
+  File "curl/run_curl.py", line 90, in main
+    run_task(args.__dict__, args.log_dir, args.exp_name)
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 55, in run_task
+    main(vv_to_args(updated_vv))
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 201, in main
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 201, in main
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/bdb.py", line 88, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/bdb.py", line 113, in dispatch_line
+    if self.quitting: raise BdbQuit
+bdb.BdbQuit
+If you suspect this is an IPython 8.6.0 bug, please report it at:
+    https://github.com/ipython/ipython/issues
+or send an email to the mailing list at ipython-dev@python.org
+You can print a more detailed traceback right now with "%tb", or use "%debug"
+to interactively debug it.
+Extra-detailed tracebacks for bug-reporting purposes can be enabled via:
+    %config Application.verbose_crash=True

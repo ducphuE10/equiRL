@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
     'actor_update_freq': 2,
     # encoder
     'encoder_type': 'pixel',
-    'encoder_feature_dim': 50,
+    'encoder_feature_dim': 256,
     'encoder_lr': 1e-3,
     'encoder_tau': 0.05,
     'num_layers': 4,
@@ -48,5 +48,14 @@ DEFAULT_CONFIG = {
     'save_video': False,
     'save_model': False,
     'detach_encoder': False,
-    'log_interval': 1
+    'log_interval': 1,
+    # augment transition
+    'aug_transition': True,
+    'aug_n': 4,
+    'aug_type': 'so2',
+    # equivariant
+    'num_rotations': 8,
+    # wandb
+    'wandb': True,
+    'wandb_seed': 0
 }

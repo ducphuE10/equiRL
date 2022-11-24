@@ -1,0 +1,34 @@
+1 config and state pairs loaded from /home/hnguyen/cloth_smoothing/SAC/softgym/softgym/envs/../cached_initial_states/cloth_flatten_init_states.pkl
+Using augmented transition with 4 transformation of so2
+Traceback (most recent call last):
+  File "curl/run_curl.py", line 94, in <module>
+    main()
+  File "curl/run_curl.py", line 90, in main
+    run_task(args.__dict__, args.log_dir, args.exp_name)
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 55, in run_task
+    main(vv_to_args(updated_vv))
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 248, in main
+    evaluate(env, agent, video_dir, args.num_eval_episodes, L, step, args)
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 130, in evaluate
+    run_eval_loop(sample_stochastically=False)
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 115, in run_eval_loop
+    plt.savefig(os.path.join(video_dir, '%d.png' % step))
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/pyplot.py", line 944, in savefig
+    res = fig.savefig(*args, **kwargs)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/figure.py", line 3277, in savefig
+    self.canvas.print_figure(fname, **kwargs)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/backend_bases.py", line 2338, in print_figure
+    result = print_method(
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/backend_bases.py", line 2204, in <lambda>
+    print_method = functools.wraps(meth)(lambda *args, **kwargs: meth(
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/_api/deprecation.py", line 410, in wrapper
+    return func(*inner_args, **inner_kwargs)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/backends/backend_agg.py", line 520, in print_png
+    self._print_pil(filename_or_obj, "png", pil_kwargs, metadata)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/backends/backend_agg.py", line 467, in _print_pil
+    mpl.image.imsave(
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/matplotlib/image.py", line 1656, in imsave
+    image.save(fname, **pil_kwargs)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/site-packages/PIL/Image.py", line 2317, in save
+    fp = builtins.open(filename, "w+b")
+FileNotFoundError: [Errno 2] No such file or directory: './data/curl/s0/video/0.png'

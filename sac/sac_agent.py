@@ -456,7 +456,7 @@ class SacAgent(object):
             obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_sac()
         else:
             obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
-
+        # print("obs shape: ",obs.shape)
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)
         #----Update----

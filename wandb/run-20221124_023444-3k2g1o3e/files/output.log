@@ -1,0 +1,59 @@
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(185)main()
+    184
+--> 185     symbolic = args.env_kwargs['observation_mode'] != 'cam_rgb'
+    186     args.encoder_type = 'identity' if symbolic else 'pixel'
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(186)main()
+    185     symbolic = args.env_kwargs['observation_mode'] != 'cam_rgb'
+--> 186     args.encoder_type = 'identity' if symbolic else 'pixel'
+    187     env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(187)main()
+    186     args.encoder_type = 'identity' if symbolic else 'pixel'
+--> 187     env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+    188               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(188)main()
+    187     env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+--> 188               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
+    189     env.seed(args.seed)
+> /home/hnguyen/cloth_smoothing/SAC/curl/train.py(187)main()
+    186     args.encoder_type = 'identity' if symbolic else 'pixel'
+--> 187     env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+    188               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
+Traceback (most recent call last):
+  File "curl/run_curl.py", line 94, in <module>
+    main()
+  File "curl/run_curl.py", line 90, in main
+    run_task(args.__dict__, args.log_dir, args.exp_name)
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 55, in run_task
+    main(vv_to_args(updated_vv))
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 187, in main
+    env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 187, in main
+    env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/bdb.py", line 88, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/bdb.py", line 113, in dispatch_line
+    if self.quitting: raise BdbQuit
+bdb.BdbQuit
+Traceback (most recent call last):
+  File "curl/run_curl.py", line 94, in <module>
+    main()
+  File "curl/run_curl.py", line 90, in main
+    run_task(args.__dict__, args.log_dir, args.exp_name)
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 55, in run_task
+    main(vv_to_args(updated_vv))
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 187, in main
+    env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+  File "/home/hnguyen/cloth_smoothing/SAC/curl/train.py", line 187, in main
+    env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/bdb.py", line 88, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/home/hnguyen/miniconda3/envs/softgym/lib/python3.8/bdb.py", line 113, in dispatch_line
+    if self.quitting: raise BdbQuit
+bdb.BdbQuit
+If you suspect this is an IPython 8.6.0 bug, please report it at:
+    https://github.com/ipython/ipython/issues
+or send an email to the mailing list at ipython-dev@python.org
+You can print a more detailed traceback right now with "%tb", or use "%debug"
+to interactively debug it.
+Extra-detailed tracebacks for bug-reporting purposes can be enabled via:
+    %config Application.verbose_crash=True

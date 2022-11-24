@@ -64,16 +64,16 @@ def main():
     parser.add_argument('--alpha_fixed', default=False, type=bool)  # Automatic tuning of alpha
     parser.add_argument('--init_temperature', default=0.1, type=float)
     parser.add_argument('--replay_buffer_capacity', default=100000)
-    parser.add_argument('--batch_size', default=32)
+    parser.add_argument('--batch_size', default=128)
 
     # Override environment arguments
     parser.add_argument('--env_kwargs_render', default=True, type=bool)  # Turn off rendering can speed up training
     parser.add_argument('--env_kwargs_camera_name', default='default_camera', type=str)
     parser.add_argument('--env_kwargs_observation_mode', default='cam_rgb', type=str)  # Should be in ['key_point', 'cam_rgb', 'point_cloud']
-    parser.add_argument('--env_kwargs_num_variations', default=1, type=int)
+    parser.add_argument('--env_kwargs_num_variations', default=10, type=int)
 
     args = parser.parse_args()
-    args.algorithm = 'SAC'
+    args.algorithm = 'EQUI'
 
     # Set env_specific parameters
     env_name = args.env_name
@@ -83,7 +83,6 @@ def main():
     args.scale_reward = reward_scales[env_name]
     args.clip_obs = clip_obs[env_name] if obs_mode == 'key_point' else None
     args.env_kwargs = env_arg_dict[env_name]
-    args.encoder_feature_dim = 256
     run_task(args.__dict__, args.log_dir, args.exp_name)
 
 

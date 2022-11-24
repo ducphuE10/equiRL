@@ -10,6 +10,7 @@ import time
 from skimage.util.shape import view_as_windows
 from collections import deque
 from scipy.ndimage import affine_transform
+from curl.default_config import DEFAULT_CONFIG
 
 
 class ConvergenceChecker(object):
@@ -76,7 +77,7 @@ def module_hash(module):
 
 def make_dir(dir_path):
     try:
-        os.mkdir(dir_path)
+        os.makedirs(dir_path)
     except OSError:
         pass
     return dir_path
@@ -232,7 +233,7 @@ class ReplayBufferAugmented(ReplayBuffer):
     def add(self, obs, action, reward, next_obs, done):
         super().add(obs, action, reward, next_obs, done)
         for _ in range(self.aug_n):
-            obs_, action_, reward_, next_obs_, done_ = augmentTransition(obs, action, reward, next_obs, done, 'se')
+            obs_, action_, reward_, next_obs_, done_ = augmentTransition(obs, action, reward, next_obs, done, DEFAULT_CONFIG['aug_type'])
             super().add(obs_, action_, reward_, next_obs_, done_)
 
 def augmentTransition(obs, action, reward, next_obs, done, aug_type):
@@ -248,7 +249,6 @@ def augmentTransition(obs, action, reward, next_obs, done, aug_type):
 
 def augmentTransitionSE2(obs, action, reward, next_obs, done):
     dxy = action[::2].copy()
-    # import ipdb; ipdb.set_trace()
     dxy1, dxy2 = np.split(dxy, 2)
     obs, next_obs, dxy1, dxy2, transform_params = perturb(obs[0].numpy().copy(),
                                                           next_obs[0].numpy().copy(),
@@ -310,8 +310,10 @@ def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_tra
     rot = np.array([[np.cos(theta), -np.sin(theta)], 
                     [np.sin(theta), np.cos(theta)]])
     rotated_dxy1 = rot.dot(dxy1)
+    rotated_dxy1 = np.clip(rotated_dxy1, -1, 1)
+    
     rotated_dxy2 = rot.dot(dxy2)
-    # rotated_dxy = np.clip(rotated_dxy, -1, 1)
+    rotated_dxy2 = np.clip(rotated_dxy2, -1, 1)
 
     # Apply rigid transform to image and pixel labels.
     current_image = affine_transform(current_image, np.linalg.inv(transform), mode='nearest', order=1)

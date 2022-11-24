@@ -167,65 +167,6 @@ class Actor(nn.Module):
         L.log_param('train_actor/fc2', self.trunk[2], step)
         L.log_param('train_actor/fc3', self.trunk[4], step)
 
-class ActorEquivariant(nn.Module):
-    """Equivariant actor network."""
-    def __init__(self, obs_shape, action_shape, hidden_dim, encoder_type,
-                 encoder_feature_dim, log_std_min, log_std_max, num_layers,
-                 num_filters, N):
-        super().__init__()
-
-        self.act = gspaces.rot2dOnR2(N)
-
-        self.action_shape = action_shape
-        self.obs_shape = obs_shape
-        self.log_std_min = log_std_min
-        self.log_std_max = log_std_max
-
-        self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers, num_filters, output_logits=False, N=N
-        )
-
-        self.conv = nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
-                            kernel_size=1, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), inplace=True),
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 2*[self.act.irrep(1)] + (self.action_shape[0]*2 -4)*[self.act.trivial_repr]), 
-                            kernel_size=1, padding=0, initialize=True)
-        )
-
-    def forward(self, obs, compute_pi=True, compute_log_pi=True, detach_encoder=False):
-        obs = obs / 255.0
-        obs_geo = escnn.nn.GeometricTensor(obs, escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]))
-        conv_out = self.conv(self.encoder(obs_geo, detach_encoder)).tensor.reshape(obs.shape[0], -1)
-        dxy = conv_out[:, :4]
-        inv_act = conv_out[:, 4:self.action_shape[0]]
-        mean = torch.cat((dxy[:, 0:1], inv_act[:, 0:1], dxy[:, 1:2], inv_act[:, 1:2], dxy[:, 2:3], inv_act[:, 2:3], dxy[:, 3:4], inv_act[:, 3:4]), dim=1)
-        log_std = conv_out[:, self.action_shape[0]:]
-
-        # constrain log_std inside [log_std_min, log_std_max]
-        log_std = torch.tanh(log_std)
-        log_std = self.log_std_min + 0.5 * (
-          self.log_std_max - self.log_std_min
-        ) * (log_std + 1)
-
-        if compute_pi:
-            std = log_std.exp()
-            noise = torch.randn_like(mean)
-            pi = mean + noise * std
-        else:
-            pi = None
-            entropy = None
-
-        if compute_log_pi:
-            log_pi = gaussian_logprob(noise, log_std)
-        else:
-            log_pi = None
-
-        mean, pi, log_pi = squash(mean, pi, log_pi)
-
-        return mean, pi, log_pi, log_std
 
 class QFunction(nn.Module):
     """MLP for q-function."""
@@ -306,59 +247,6 @@ class Critic(nn.Module):
         for i in range(3):
             L.log_param('train_critic/q1_fc%d' % i, self.Q1.trunk[i * 2], step)
             L.log_param('train_critic/q2_fc%d' % i, self.Q2.trunk[i * 2], step)
-
-class CriticEquivariant(nn.Module):
-    """Equivariant critic network, employes two q-functions."""
-    def __init__(
-      self, obs_shape, action_shape, hidden_dim, encoder_type,
-      encoder_feature_dim, num_layers, num_filters, N
-    ):
-        super().__init__()
-
-        self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
-            num_filters, output_logits=False, N=N
-        )
-        self.act = gspaces.rot2dOnR2(N)
-        self.action_shape = action_shape
-        self.obs_shape = obs_shape
-        self.encoder_feature_dim = encoder_feature_dim
-
-        self.Q1 = nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]),
-                            escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
-                            kernel_size=1, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), inplace=True),
-            escnn.nn.GroupPooling(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr])),
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, hidden_dim*[self.act.trivial_repr]),
-                            escnn.nn.FieldType(self.act, 1*[self.act.trivial_repr]), 
-                            kernel_size=1, padding=0, initialize=True),
-        )
-
-        self.Q2 = nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]),
-                            escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
-                            kernel_size=1, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), inplace=True),
-            escnn.nn.GroupPooling(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr])),
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, hidden_dim*[self.act.trivial_repr]),
-                            escnn.nn.FieldType(self.act, 1*[self.act.trivial_repr]), 
-                            kernel_size=1, padding=0, initialize=True),
-        )
-    
-    def forward(self, obs, action, detach_encoder=False):
-        obs = obs / 255.0
-        batch_size = obs.shape[0]
-        action = action.reshape(batch_size, -1)
-        obs_geo = escnn.nn.GeometricTensor(obs, escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]))
-        conv_out = self.encoder(obs_geo, detach=detach_encoder)   
-        dxy = torch.cat([action[:, 0:1], action[:, 2:3], action[:, 4:5], action[:, 6:7]], dim=1).reshape(batch_size, 4, 1, 1)
-        inv_act = torch.cat([action[:, 1:2], action[:, 3:4], action[:, 5:6], action[:, 7:8]], dim=1).reshape(batch_size, 4, 1, 1)
-        cat = torch.cat((conv_out.tensor, inv_act, dxy), dim=1)
-        cat_geo = escnn.nn.GeometricTensor(cat, escnn.nn.FieldType(self.act, self.encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]))
-        q1 = self.Q1(cat_geo).tensor.reshape(batch_size, 1)
-        q2 = self.Q2(cat_geo).tensor.reshape(batch_size, 1)
-        return q1, q2
 
 class CURL(nn.Module):
     """

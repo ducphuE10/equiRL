@@ -1,0 +1,1 @@
+{"performance_mean": 0.22312499582767487, "_timestamp": 1669284692.6025236, "performance_final": 0.22312501072883606, "normalized_performance_mean": 1.0000001192092896, "normalized_performance_final": 1.0000001192092896, "_runtime": 5389.823090553284, "_step": 30000, "_wandb": {"runtime": 5573}}

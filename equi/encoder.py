@@ -66,7 +66,7 @@ class PixelEncoder(nn.Module):
             conv = torch.relu(self.convs[i](conv))
             self.outputs['conv%s' % (i + 1)] = conv
 
-        h = conv.contiguous().view(conv.size(0), -1)
+        h = conv.view(conv.size(0), -1)
         return h
 
     def forward(self, obs, detach=False):
@@ -168,6 +168,7 @@ class PixelEncoderEquivariant(nn.Module):
 
             # 16 x 16
         self.convs4 = torch.nn.Sequential(
+            # import ipdb;ipdb.set_trace()
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
@@ -202,6 +203,7 @@ class PixelEncoderEquivariant(nn.Module):
             # 1 x 1
 
     def forward(self, geo, detach=False):
+        # import ipdb;ipdb.set_trace()
         gg = self.convs1(geo)
         gg = self.convs2(gg)
         gg = self.convs3(gg)
@@ -215,7 +217,7 @@ _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder, 'pixe
 
 
 def make_encoder(
-    encoder_type, obs_shape, feature_dim, num_layers, num_filters, output_logits=False, N=4
+    encoder_type, obs_shape, feature_dim, num_layers, num_filters, output_logits=False, N=8
 ):
     assert encoder_type in _AVAILABLE_ENCODERS
     if encoder_type != 'pixel-equivariant':

@@ -9,6 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 import time
 from skimage.util.shape import view_as_windows
 from collections import deque
+from scipy.ndimage import affine_transform
+from equi.default_config import DEFAULT_CONFIG
 
 
 class ConvergenceChecker(object):
@@ -75,7 +77,7 @@ def module_hash(module):
 
 def make_dir(dir_path):
     try:
-        os.mkdir(dir_path)
+        os.makedirs(dir_path)
     except OSError:
         pass
     return dir_path
@@ -144,8 +146,9 @@ class ReplayBuffer(Dataset):
         not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
         return obses, actions, rewards, next_obses, not_dones
 
+
     def sample_cpc(self):
-        # import ipdb;ipdb.set_trace()
+
         start = time.time()
         idxs = np.random.randint(
             0, self.capacity if self.full else self.idx, size=self.batch_size
@@ -222,6 +225,124 @@ class ReplayBuffer(Dataset):
     def __len__(self):
         return self.capacity
 
+class ReplayBufferAugmented(ReplayBuffer):
+    def __init__(self, obs_shape, action_shape, capacity, batch_size, device, image_size=84, transform=None, aug_n=9):
+        super().__init__(obs_shape, action_shape, capacity, batch_size, device, image_size, transform)
+        self.aug_n = aug_n
+    
+    def add(self, obs, action, reward, next_obs, done):
+        super().add(obs, action, reward, next_obs, done)
+        for _ in range(self.aug_n):
+            obs_, action_, reward_, next_obs_, done_ = augmentTransition(obs, action, reward, next_obs, done, DEFAULT_CONFIG['aug_type'])
+            super().add(obs_, action_, reward_, next_obs_, done_)
+
+def augmentTransition(obs, action, reward, next_obs, done, aug_type):
+    if aug_type=='se2':
+        return augmentTransitionSE2(obs, action, reward, next_obs, done)
+    elif aug_type=='so2':
+        return augmentTransitionSO2(obs, action, reward, next_obs, done)
+    elif aug_type=='trans':
+        return augmentTransitionTranslate(obs, action, reward, next_obs, done)
+    else:
+        raise NotImplementedError
+
+
+def augmentTransitionSE2(obs, action, reward, next_obs, done):
+    dxy = action[::2].copy()
+    dxy1, dxy2 = np.split(dxy, 2)
+    obs, next_obs, dxy1, dxy2, transform_params = perturb(obs[0].numpy().copy(),
+                                                          next_obs[0].numpy().copy(),
+                                                          dxy1, dxy2)
+    obs = obs.reshape(1, *obs.shape)
+    obs = torch.from_numpy(obs)
+    next_obs = next_obs.reshape(1, *next_obs.shape)
+    next_obs = torch.from_numpy(next_obs)
+    action = action.copy()
+    action[0] = dxy1[0]
+    action[2] = dxy1[1]
+    action[4] = dxy2[0]
+    action[6] = dxy2[1]
+    return obs, action, reward, next_obs, done
+    
+def augmentTransitionSO2(obs, action, reward, next_obs, done):
+    dxy = action[::2].copy()
+    dxy1, dxy2 = np.split(dxy, 2)
+    obs, next_obs, dxy1, dxy2, transform_params = perturb(obs[0].numpy().copy(),
+                                                          next_obs[0].numpy().copy(),
+                                                          dxy1, dxy2,
+                                                          set_trans_zero=True)
+    obs = obs.reshape(1, *obs.shape)
+    obs = torch.from_numpy(obs)
+    next_obs = next_obs.reshape(1, *next_obs.shape)
+    next_obs = torch.from_numpy(next_obs)
+    action = action.copy()
+    action[0] = dxy1[0]
+    action[2] = dxy1[1]
+    action[4] = dxy2[0]
+    action[6] = dxy2[1]
+    return obs, action, reward, next_obs, done
+
+def augmentTransitionTranslate(obs, action, reward, next_obs, done):
+    dxy = action[::2].copy()
+    dxy1, dxy2 = np.split(dxy, 2)
+    obs, next_obs, dxy1, dxy2, transform_params = perturb(obs[0].numpy().copy(),
+                                                          next_obs[0].numpy().copy(),
+                                                          dxy1, dxy2,
+                                                          set_theta_zero=True)
+    obs = obs.reshape(1, *obs.shape)
+    obs = torch.from_numpy(obs)
+    next_obs = next_obs.reshape(1, *next_obs.shape)
+    next_obs = torch.from_numpy(next_obs)
+    return obs, action, reward, next_obs, done
+
+def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_trans_zero=False):
+    image_size = current_image.shape[-2:]
+
+    # Compute random rigid transform.
+    theta, trans, pivot = get_random_image_transform_params(image_size)
+    if set_theta_zero:
+        theta = 0.
+    if set_trans_zero:
+        trans = [0., 0.]
+    transform = get_image_transform(theta, trans, pivot)
+    transform_params = theta, trans, pivot
+
+    rot = np.array([[np.cos(theta), -np.sin(theta)], 
+                    [np.sin(theta), np.cos(theta)]])
+    rotated_dxy1 = rot.dot(dxy1)
+    rotated_dxy1 = np.clip(rotated_dxy1, -1, 1)
+    
+    rotated_dxy2 = rot.dot(dxy2)
+    rotated_dxy2 = np.clip(rotated_dxy2, -1, 1)
+
+    # Apply rigid transform to image and pixel labels.
+    current_image = affine_transform(current_image, np.linalg.inv(transform), mode='nearest', order=1)
+    if next_image is not None:
+        next_image = affine_transform(next_image, np.linalg.inv(transform), mode='nearest', order=1)
+
+    return current_image, next_image, rotated_dxy1, rotated_dxy2, transform_params
+
+def get_random_image_transform_params(image_size):
+    theta = np.random.random() * 2*np.pi
+    trans = np.random.randint(0, image_size[0]//10, 2) - image_size[0]//20
+    pivot = (image_size[1] / 2, image_size[0] / 2)
+    return theta, trans, pivot
+
+def get_image_transform(theta, trans, pivot=(0, 0)):
+    """Compute composite 2D rigid transformation matrix."""
+    # Get 2D rigid transformation matrix that rotates an image by theta (in
+    # radians) around pivot (in pixels) and translates by trans vector (in
+    # pixels)
+    pivot_t_image = np.array([[1., 0., -pivot[0]], 
+                              [0., 1., -pivot[1]],
+                              [0., 0., 1.]])
+    image_t_pivot = np.array([[1., 0., pivot[0]], 
+                              [0., 1., pivot[1]],
+                              [0., 0., 1.]])
+    transform = np.array([[np.cos(theta), -np.sin(theta), trans[0]],
+                          [np.sin(theta), np.cos(theta), trans[1]], 
+                          [0., 0., 1.]])
+    return np.dot(image_t_pivot, np.dot(transform, pivot_t_image))
 
 class FrameStack(gym.Wrapper):
     def __init__(self, env, k):

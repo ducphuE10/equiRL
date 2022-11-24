@@ -1,4 +1,4 @@
 softgym/*
 softgym
-/home/hnguyen/cloth_smoothing/SAC/data/
-/home/hnguyen/cloth_smoothing/SAC/curl/__pycache__/
+data/*
+wandb/*
