@@ -182,7 +182,7 @@ def main(args):
     else:
         print('Not using wandb')
 
-    symbolic = args.env_kwargs['observation_mode'] != 'cam_rgb'
+    symbolic = args.env_kwargs['observation_mode'] not in ['cam_rgb','img_depth']
     args.encoder_type = 'identity' if symbolic else 'pixel'
     env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
@@ -202,8 +202,12 @@ def main(args):
     action_shape = env.action_space.shape
 
     if args.encoder_type == 'pixel':
-        obs_shape = (3, args.image_size, args.image_size)
-        pre_aug_obs_shape = (3, args.pre_transform_image_size, args.pre_transform_image_size)
+        if args.env_kwargs['observation_mode'] == 'cam_rgb':
+            obs_shape = (3, args.image_size, args.image_size)
+            pre_aug_obs_shape = (3, args.pre_transform_image_size, args.pre_transform_image_size)
+        else:
+            obs_shape = (4, args.image_size, args.image_size)
+            pre_aug_obs_shape = (4, args.pre_transform_image_size, args.pre_transform_image_size)
     else:
         obs_shape = env.observation_space.shape
         pre_aug_obs_shape = obs_shape
