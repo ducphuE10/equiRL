@@ -18,6 +18,7 @@ from softgym.utils.visualization import save_numpy_as_gif, make_grid
 import matplotlib.pyplot as plt
 
 import wandb
+import gc
 
 def update_env_kwargs(vv):
     new_vv = vv.copy()
@@ -38,21 +39,34 @@ def vv_to_args(vv):
     args = VArgs(vv)
 
     # Dump parameters
-    with open(os.path.join(logger.get_dir(), 'variant.json'), 'w') as f:
-        json.dump(vv, f, indent=2, sort_keys=True)
+    # with open(os.path.join(logger.get_dir(), 'variant.json'), 'w') as f:
+    #     json.dump(vv, f, indent=2, sort_keys=True)
 
     return args
 
 
 def run_task(vv, log_dir=None, exp_name=None):
+    # if log_dir or logger.get_dir() is None:
+    #     logger.configure(dir=log_dir, exp_name=exp_name, format_strs=['csv'])
+    # logdir = logger.get_dir()
+    # assert logdir is not None
+    # os.makedirs(logdir, exist_ok=True)
+    # updated_vv = copy.copy(DEFAULT_CONFIG)
+    # updated_vv.update(**vv)
+    # main(vv_to_args(updated_vv))
+    updated_vv = copy.copy(DEFAULT_CONFIG)
+    updated_vv.update(**vv)
+    args = vv_to_args(updated_vv)
+    if args.wandb:
+        log_dir = os.path.join(log_dir, f's{args.wandb_seed}')
     if log_dir or logger.get_dir() is None:
         logger.configure(dir=log_dir, exp_name=exp_name, format_strs=['csv'])
     logdir = logger.get_dir()
-    assert logdir is not None
     os.makedirs(logdir, exist_ok=True)
-    updated_vv = copy.copy(DEFAULT_CONFIG)
-    updated_vv.update(**vv)
-    main(vv_to_args(updated_vv))
+    assert logdir is not None
+    with open(os.path.join(logger.get_dir(), 'variant.json'), 'w') as f:
+        json.dump(updated_vv, f, indent=2, sort_keys=True)
+    main(args)
 
 def get_info_stats(infos):
     # infos is a list with N_traj x T entries
@@ -101,7 +115,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
                         action = agent.sample_action(obs)
                     else:
                         action = agent.select_action(obs)
-                obs, reward, done, info = env.step(action)
+                obs, reward, done, info = env.step(action, delta_reward=args.delta_reward)
                 episode_reward += reward
                 ep_info.append(info)
                 frames.append(env.get_image(128, 128))
@@ -123,7 +137,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
 
         for key, val in get_info_stats(infos).items():
             L.log('eval/info_' + prefix + key, val, step)
-             if args.wandb:
+            if args.wandb:
                 wandb.log({key:val},step = step)
         L.log('eval/' + prefix + 'eval_time', time.time() - start_time, step)
         mean_ep_reward = np.mean(all_ep_rewards)
@@ -174,6 +188,7 @@ def make_agent(obs_shape, action_shape, args, device):
 
 
 def main(args):
+    torch.cuda.empty_cache()
     if args.seed == -1:
         args.__dict__["seed"] = np.random.randint(1, 1000000)
     utils.set_seed_everywhere(args.seed)
@@ -185,12 +200,12 @@ def main(args):
         group_name = args.exp_name + '_aug' if args.aug_transition else args.exp_name + '_no_aug'
         wandb.init(project=args.env_name, settings=wandb.Settings(_disable_stats=True), group=group_name, name=f's{args.wandb_seed}', entity='longdinh')
     else:
-        print('Not using wandb')
+        print('==================== NOT USING WANDB ====================')
 
     symbolic = args.env_kwargs['observation_mode'] != 'cam_rgb'
     args.encoder_type = 'identity' if symbolic else 'pixel'
 
-    env = Env(args.env_name, symbolic, args.seed, 200, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
+    env = Env(args.env_name, symbolic, args.seed, 100, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
     env.seed(args.seed)
 
@@ -199,11 +214,12 @@ def main(args):
     ts = time.strftime("%m-%d", ts)
 
     args.work_dir = logger.get_dir()
-    video_dir = utils.make_dir(os.path.join(args.work_dir, f's{args.wandb_seed}', 'video'))
-    model_dir = utils.make_dir(os.path.join(args.work_dir, f's{args.wandb_seed}', 'model'))
-    buffer_dir = utils.make_dir(os.path.join(args.work_dir, f's{args.wandb_seed}', 'buffer'))
+    video_dir = utils.make_dir(os.path.join(args.work_dir, 'video'))
+    model_dir = utils.make_dir(os.path.join(args.work_dir, 'model'))
+    buffer_dir = utils.make_dir(os.path.join(args.work_dir, 'buffer'))
+    L = Logger(args.work_dir, use_tb=args.save_tb, chester_logger=logger)
 
-    device = torch.device('cuda:1,2,3' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     action_shape = env.action_space.shape
 
@@ -215,6 +231,7 @@ def main(args):
         pre_aug_obs_shape = obs_shape
     
     if args.aug_transition:
+        print(f'==================== AUGMENTED TRANSITION with {args.aug_n} TRANSFORMATION of {args.aug_type}====================')
         replay_buffer = utils.ReplayBufferAugmented(
             obs_shape=pre_aug_obs_shape,
             action_shape=action_shape,
@@ -225,6 +242,7 @@ def main(args):
             aug_n = args.aug_n,
         )
     else:
+        print('================ DON NOT USE AUGMENTED TRANSITION =================')
         replay_buffer = utils.ReplayBuffer(
             obs_shape=pre_aug_obs_shape,
             action_shape=action_shape,
@@ -240,8 +258,6 @@ def main(args):
         args=args,
         device=device
     )
-    
-    L = Logger(os.path.join(args.work_dir, f's{args.wandb_seed}'), use_tb=args.save_tb, chester_logger=logger)
     
     episode, episode_reward, done, ep_info = 0, 0, True, []
     start_time = time.time()
@@ -285,10 +301,8 @@ def main(args):
 
         # run training update
         if step >= args.init_steps:
-            num_updates = 1
-            for _ in range(num_updates):
-                agent.update(replay_buffer, L, step)
-        next_obs, reward, done, info = env.step(action)
+            agent.update(replay_buffer, L, step)
+        next_obs, reward, done, info = env.step(action, delta_reward=args.delta_reward)
 
         # allow infinit bootstrap
         ep_info.append(info)

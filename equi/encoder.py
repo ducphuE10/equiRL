@@ -128,8 +128,8 @@ class PixelEncoderEquivariant(nn.Module):
     """Equivariant convolutional encoder of pixels observations."""
     def __init__(self, obs_shape, feature_dim=512, num_layers=4, num_filters=32, output_logits=False, N=4):
         super().__init__()
-        # import ipdb; ipdb.set_trace()
 
+        print(f'================== Equivariant Encoder with C{N} ==================')
         assert len(obs_shape) == 3
         self.obs_shape = obs_shape
         self.feature_dim = feature_dim
@@ -141,7 +141,6 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, self.obs_shape[0]*[self.act.trivial_repr]),
                             escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]), 2)
             )
@@ -151,7 +150,6 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2)
             )
@@ -159,34 +157,29 @@ class PixelEncoderEquivariant(nn.Module):
             # 32 x 32
         self.convs3 = torch.nn.Sequential(
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=1, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr])),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]), 2)
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), 2)
             )
 
             # 16 x 16
         self.convs4 = torch.nn.Sequential(
-            # import ipdb;ipdb.set_trace()
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 2*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=1, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr])),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), 2),
-
-            # 8 x 8
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
-                            kernel_size=3, padding=1, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr])),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]), inplace=True),
-
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 4*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), 2),
+
+            # 8 x 8
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 16*num_filters*[self.act.regular_repr]),
+                            kernel_size=3, padding=1, initialize=True),
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 16*num_filters*[self.act.regular_repr]), inplace=True),
+
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 16*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
                             kernel_size=3, padding=0, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), inplace=True),
             escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), 2)
             )
@@ -196,10 +189,8 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
                             kernel_size=3, padding=0, initialize=True),
-            # escnn.nn.InnerBatchNorm(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr])),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), inplace=True)
             )
-
             # 1 x 1
 
     def forward(self, geo, detach=False):

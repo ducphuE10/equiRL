@@ -243,6 +243,10 @@ def augmentTransition(obs, action, reward, next_obs, done, aug_type):
         return augmentTransitionSO2(obs, action, reward, next_obs, done)
     elif aug_type=='trans':
         return augmentTransitionTranslate(obs, action, reward, next_obs, done)
+    elif aug_type=='shift':
+        return augmentTransitionShift(obs, action, reward, next_obs, done)
+    elif aug_type=='crop':
+        return augmentTransitionCrop(obs, action, reward, next_obs, done)
     else:
         raise NotImplementedError
 
@@ -293,6 +297,33 @@ def augmentTransitionTranslate(obs, action, reward, next_obs, done):
     obs = torch.from_numpy(obs)
     next_obs = next_obs.reshape(1, *next_obs.shape)
     next_obs = torch.from_numpy(next_obs)
+    return obs, action, reward, next_obs, done
+
+def augmentTransitionShift(obs, action, reward, next_obs, done):
+    obs = obs[0]
+    next_obs = next_obs[0]
+    heightmap_size = obs.shape[-1]
+    padded_obs = np.pad(obs, [4, 4], mode='edge')
+    padded_next_obs = np.pad(next_obs, [4, 4], mode='edge')
+    mag_x = np.random.randint(8)
+    mag_y = np.random.randint(8)
+    obs = padded_obs[mag_x:mag_x+heightmap_size, mag_y:mag_y+heightmap_size]
+    next_obs = padded_next_obs[mag_x:mag_x+heightmap_size, mag_y:mag_y+heightmap_size]
+    obs = obs.reshape(1, *obs.shape)
+    next_obs = next_obs.reshape(1, *next_obs.shape)
+    return obs, action, reward, next_obs, done
+
+def augmentTransitionCrop(obs, action, reward, next_obs, done):
+    obs = obs[0]
+    next_obs = next_obs[0]
+    heightmap_size = obs.shape[-1]
+    crop_max = highmap_size - image_size + 1
+    w1 = np.random.randint(0, crop_max)
+    h1 = np.random.randint(0, crop_max)
+    obs = obs[w1:w1+crop_size, h1:h1+crop_size]
+    next_obs = next_obs[w1:w1+crop_size, h1:h1+crop_size]
+    obs = obs.reshape(1, *obs.shape)
+    next_obs = next_obs.reshape(1, *next_obs.shape)
     return obs, action, reward, next_obs, done
 
 def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_trans_zero=False):

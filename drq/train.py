@@ -87,6 +87,7 @@ class Workspace(object):
 
         obs_shape = self.env.observation_space.shape
         new_obs_shape = np.zeros_like(obs_shape)
+
         new_obs_shape[0] = obs_shape[-1]
         new_obs_shape[1] = obs_shape[0]
         new_obs_shape[2] = obs_shape[1]

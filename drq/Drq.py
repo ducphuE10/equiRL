@@ -7,7 +7,90 @@ import math
 
 import drq.utils as utils
 
+
 class Encoder(nn.Module):
+    def __init__(self, obs_shape, feature_dim=256, num_layers=4, num_filters=32, output_logits=False, N=4):
+        super().__init__()
+        assert len(obs_shape) == 3
+        self.obs_shape = obs_shape
+        self.feature_dim = feature_dim
+
+        # self.act = gspaces.rot2dOnR2(N)
+
+        self.convs1 = torch.nn.Sequential(
+            nn.Conv2d(3,16,kernel_size = 3,padding = 1),
+            nn.ReLU(inplace = True),
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
+        )
+            # 64 x 64
+        self.convs2 = torch.nn.Sequential(
+            nn.Conv2d(16,32,kernel_size = 3,padding = 1),
+            nn.ReLU(inplace = True),
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            )
+
+            # 32 x 32
+        self.convs3 = torch.nn.Sequential(
+            nn.Conv2d(32,64,kernel_size = 3,padding = 1),
+            nn.ReLU(inplace = True),
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            )
+
+            # 16 x 16
+        self.convs4 = torch.nn.Sequential(
+            nn.Conv2d(64,128,kernel_size = 3,padding = 1),
+            nn.ReLU(inplace = True),
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
+
+            nn.Conv2d(128,128,kernel_size = 3,padding = 1),
+            nn.ReLU(inplace = True),
+
+            nn.Conv2d(128,128,kernel_size = 3,padding = 0),
+            nn.ReLU(inplace = True),
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            )
+        
+        self.convs5 = torch.nn.Sequential(
+            nn.Conv2d(128,self.feature_dim,kernel_size = 3,padding = 0),
+            nn.ReLU(inplace = True),
+            )
+
+        self.convs = nn.ModuleList([
+            self.convs1,
+            self.convs2,
+            self.convs3,
+            self.convs4,
+            self.convs5
+        ])
+        self.num_layers = 5
+    def forward(self, geo, detach=False):
+        # print(self.feature_dim)
+        gg = self.convs1(geo)
+        gg = self.convs2(gg)
+        gg = self.convs3(gg)
+        gg = self.convs4(gg)
+        gg = self.convs5(gg)
+        if detach:
+            gg = gg.detach()
+        gg= gg.view(gg.size(0), -1)
+        return gg
+
+    def copy_conv_weights_from(self, source):
+        """Tie convolutional layers"""
+        # for i in range(self.num_layers):
+        #     utils.tie_weights(src=source.convs[i], trg=self.convs[i])
+        pass
+    
+    def log(self, logger, step):
+        for k, v in self.outputs.items():
+            logger.log_histogram(f'train_encoder/{k}_hist', v, step)
+            if len(v.shape) > 2:
+                logger.log_image(f'train_encoder/{k}_img', v[0], step)
+
+        for i in range(self.num_layers):
+            logger.log_param(f'train_encoder/conv{i + 1}', self.convs[i], step)
+
+class Encoder_origin(nn.Module):
     """Convolutional encoder for image-based observations."""
     def __init__(self, obs_shape, feature_dim):
         super().__init__()
@@ -68,9 +151,10 @@ class Encoder(nn.Module):
         return out
 
     def copy_conv_weights_from(self, source):
-        """Tie convolutional layers"""
-        for i in range(self.num_layers):
-            utils.tie_weights(src=source.convs[i], trg=self.convs[i])
+        # """Tie convolutional layers"""
+        # for i in range(self.num_layers):
+        #     utils.tie_weights(src=source.convs[i], trg=self.convs[i])
+        pass
 
     def log(self, logger, step):
         for k, v in self.outputs.items():

@@ -4,7 +4,7 @@ reward_scales = {
     'PassWater': 20.0,
     'PourWater': 20.0,
     'ClothFold': 50.0,
-    'ClothFlatten': 50.0,
+    'ClothFlatten': 500.0,
     'ClothDrop': 50.0,
     'RopeFlatten': 50.0,
 }
@@ -64,13 +64,13 @@ def main():
     parser.add_argument('--alpha_fixed', default=False, type=bool)  # Automatic tuning of alpha
     parser.add_argument('--init_temperature', default=0.1, type=float)
     parser.add_argument('--replay_buffer_capacity', default=100000)
-    parser.add_argument('--batch_size', default=128)
+    parser.add_argument('--batch_size', default=64)
 
     # Override environment arguments
     parser.add_argument('--env_kwargs_render', default=True, type=bool)  # Turn off rendering can speed up training
     parser.add_argument('--env_kwargs_camera_name', default='default_camera', type=str)
     parser.add_argument('--env_kwargs_observation_mode', default='cam_rgb', type=str)  # Should be in ['key_point', 'cam_rgb', 'point_cloud']
-    parser.add_argument('--env_kwargs_num_variations', default=10, type=int)
+    parser.add_argument('--env_kwargs_num_variations', default=1000, type=int)
 
     args = parser.parse_args()
     args.algorithm = 'EQUI'
