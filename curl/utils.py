@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
+import torchvision.transforms as transforms
 import gym
 import os
 from collections import deque
@@ -11,7 +12,8 @@ from skimage.util.shape import view_as_windows
 from collections import deque
 from scipy.ndimage import affine_transform
 from curl.default_config import DEFAULT_CONFIG
-
+from matplotlib import pyplot as plt
+from PIL import Image
 
 class ConvergenceChecker(object):
     def __init__(self, threshold, history_len):
@@ -232,9 +234,19 @@ class ReplayBufferAugmented(ReplayBuffer):
     
     def add(self, obs, action, reward, next_obs, done):
         super().add(obs, action, reward, next_obs, done)
-        for _ in range(self.aug_n):
+        # os.makedirs('augmented', exist_ok=True)
+        # img_obs = Image.fromarray(obs[0].numpy().transpose(1, 2, 0))
+        # img_next_obs = Image.fromarray(next_obs[0].numpy().transpose(1, 2, 0))
+        # img_obs.save('augmented/original.png')
+        # img_next_obs.save('augmented/original_next.png')
+        for i in range(self.aug_n):
             obs_, action_, reward_, next_obs_, done_ = augmentTransition(obs, action, reward, next_obs, done, DEFAULT_CONFIG['aug_type'])
+            # img_obs_ = Image.fromarray(obs_[0].numpy().transpose(1, 2, 0))
+            # img_next_obs_ = Image.fromarray(next_obs_[0].numpy().transpose(1, 2, 0))
+            # img_obs_.save(f'augmented/obs_{i}.png')
+            # img_next_obs_.save(f'augmented/next_obs_{i}.png')
             super().add(obs_, action_, reward_, next_obs_, done_)
+        # exit()
 
 def augmentTransition(obs, action, reward, next_obs, done, aug_type):
     if aug_type=='se2':
@@ -243,9 +255,12 @@ def augmentTransition(obs, action, reward, next_obs, done, aug_type):
         return augmentTransitionSO2(obs, action, reward, next_obs, done)
     elif aug_type=='trans':
         return augmentTransitionTranslate(obs, action, reward, next_obs, done)
+    elif aug_type=='shift':
+        return augmentTransitionShift(obs, action, reward, next_obs, done)
+    elif aug_type=='crop':
+        return augmentTransitionCrop(obs, action, reward, next_obs, done)
     else:
         raise NotImplementedError
-
 
 def augmentTransitionSE2(obs, action, reward, next_obs, done):
     dxy = action[::2].copy()
@@ -295,9 +310,31 @@ def augmentTransitionTranslate(obs, action, reward, next_obs, done):
     next_obs = torch.from_numpy(next_obs)
     return obs, action, reward, next_obs, done
 
+def augmentTransitionShift(obs, action, reward, next_obs, done):
+    heightmap_size = obs.shape[-1]
+    padded_obs = transforms.Pad((4, 4, 4, 4), padding_mode='edge')(obs)
+    padded_next_obs = transforms.Pad((4, 4, 4, 4), padding_mode='edge')(next_obs)
+    mag_x = np.random.randint(8)
+    mag_y = np.random.randint(8)
+    obs = padded_obs[:, :, mag_x:mag_x+heightmap_size, mag_y:mag_y+heightmap_size]
+    next_obs = padded_next_obs[:, :, mag_x:mag_x+heightmap_size, mag_y:mag_y+heightmap_size]
+    return obs, action, reward, next_obs, done
+
+def augmentTransitionCrop(obs, action, reward, next_obs, done):
+    crop_size = DEFAULT_CONFIG['image_size']
+    heightmap_size = obs.shape[-1]
+    crop_max = heightmap_size - crop_size + 1
+    w1 = np.random.randint(0, crop_max)
+    h1 = np.random.randint(0, crop_max)
+    obs = obs[:, :, h1:h1+crop_size, w1:w1+crop_size]
+    next_obs = next_obs[:, :, h1:h1+crop_size, w1:w1+crop_size]
+    obs = transforms.Resize((heightmap_size, heightmap_size))(obs)
+    next_obs = transforms.Resize((heightmap_size, heightmap_size))(next_obs)
+    return obs, action, reward, next_obs, done
+
 def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_trans_zero=False):
     image_size = current_image.shape[-2:]
-
+    
     # Compute random rigid transform.
     theta, trans, pivot = get_random_image_transform_params(image_size)
     if set_theta_zero:
@@ -316,11 +353,19 @@ def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_tra
     rotated_dxy2 = np.clip(rotated_dxy2, -1, 1)
 
     # Apply rigid transform to image and pixel labels.
-    current_image = affine_transform(current_image, np.linalg.inv(transform), mode='nearest', order=1)
-    if next_image is not None:
-        next_image = affine_transform(next_image, np.linalg.inv(transform), mode='nearest', order=1)
-
+    if current_image.shape[0] == 1:
+        current_image = affine_transform(current_image, np.linalg.inv(transform), mode='nearest', order=1)
+        if next_image is not None:
+            next_image = affine_transform(next_image, np.linalg.inv(transform), mode='nearest', order=1)
+    else:
+        # current_image = np.zeros_like(current_image)
+        # next_image = np.zeros_like(next_image)
+        for i in range(current_image.shape[0]):
+            current_image[i, :, :] = affine_transform(current_image[i, :, :], np.linalg.inv(transform), mode='nearest', order=1)
+            if next_image is not None:
+                next_image[i, :, :] = affine_transform(next_image[i, :, :], np.linalg.inv(transform), mode='nearest', order=1)
     return current_image, next_image, rotated_dxy1, rotated_dxy2, transform_params
+
 
 def get_random_image_transform_params(image_size):
     theta = np.random.random() * 2*np.pi

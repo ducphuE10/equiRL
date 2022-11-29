@@ -13,7 +13,7 @@ import datetime
 import dateutil.tz
 from tempfile import NamedTemporaryFile
 
-from chester import config, config_ec2
+from chester import config
 
 from chester.slurm import to_slurm_command
 from chester.utils_s3 import launch_ec2, s3_sync_code

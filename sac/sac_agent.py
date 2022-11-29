@@ -93,9 +93,8 @@ class Actor(nn.Module):
     def forward(
       self, obs, compute_pi=True, compute_log_pi=True, detach_encoder=False
     ):
+        # import ipdb;ipdb.set_trace()
         obs = self.encoder(obs, detach=detach_encoder)
-        # print(obs.shape)
-        # exit()
         mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
         # constrain log_std inside [log_std_min, log_std_max]

@@ -12,6 +12,7 @@ from escnn import gspaces
 
 from curl import utils
 from curl.encoder import make_encoder
+import wandb
 
 LOG_FREQ = 10000
 
@@ -457,6 +458,8 @@ class CurlSacAgent(object):
                                  target_Q) + F.mse_loss(current_Q2, target_Q)
         if step % self.log_interval == 0:
             L.log('train_critic/loss', critic_loss, step)
+            if self.args.wandb:
+                wandb.log({'train_critic_loss': critic_loss}, step=step)
             # L.log('train/q1', torch.mean(current_Q1), step)
             # L.log('train/comp_Q', torch.mean(comp_Q), step)
             # L.log('train/comp_E', torch.mean(comp_E), step)
@@ -473,7 +476,8 @@ class CurlSacAgent(object):
         if self.args.lr_decay is not None:
             self.critic_lr_scheduler.step()
             L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
-
+            if self.args.wandb:
+                wandb.log({'train_critic_lr': self.critic_optimizer.param_groups[0]['lr']}, step=step)
 
         self.critic.log(L, step)
 
@@ -487,6 +491,8 @@ class CurlSacAgent(object):
 
         if step % self.log_interval == 0:
             L.log('train_actor/loss', actor_loss, step)
+            if self.args.wandb:
+                wandb.log({'train_actor_loss': actor_loss}, step=step)
             L.log('train_actor/target_entropy', self.target_entropy, step)
         entropy = 0.5 * log_std.shape[1] * \
                   (1.0 + np.log(2 * np.pi)) + log_std.sum(dim=-1)
@@ -501,7 +507,8 @@ class CurlSacAgent(object):
         if self.args.lr_decay is not None:
             self.actor_lr_scheduler.step()
             L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
-
+            if self.args.wandb:
+                wandb.log({'train_actor_lr': self.actor_optimizer.param_groups[0]['lr']}, step=step)
 
         self.actor.log(L, step)
 
@@ -518,6 +525,9 @@ class CurlSacAgent(object):
             if step % self.log_interval == 0:
                 L.log('train_alpha/loss', alpha_loss, step)
                 L.log('train_alpha/value', self.alpha, step)
+                if self.args.wandb:
+                    wandb.log({'train_alpha_loss': alpha_loss}, step=step)
+                    wandb.log({'train_alpha_value': self.alpha}, step=step)
             alpha_loss.backward()
             self.log_alpha_optimizer.step()
 
@@ -538,6 +548,8 @@ class CurlSacAgent(object):
         self.cpc_optimizer.step()
         if step % self.log_interval == 0:
             L.log('train/curl_loss', loss, step)
+            if self.args.wandb:
+                wandb.log({'train_curl_loss': loss}, step=step)
 
     def update(self, replay_buffer, L, step):
         if self.encoder_type == 'pixel':
@@ -547,6 +559,8 @@ class CurlSacAgent(object):
 
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)
+            if self.args.wandb:
+                wandb.log({'train_batch_reward': reward.mean()}, step=step)
 
         start_time = time.time()
         self.update_critic(obs, action, reward, next_obs, not_done, L, step)

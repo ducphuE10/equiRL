@@ -9,6 +9,7 @@ from escnn import gspaces
 
 from equi import utils
 from equi.encoder import make_encoder
+import wandb
 
 LOG_FREQ = 10000
 
@@ -75,10 +76,6 @@ class Actor(nn.Module):
         
         super().__init__()
 
-        print('='*80)
-        print('Use actor')
-        print('='*80)
-
         assert encoder_type == 'pixel'
         self.encoder = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
@@ -101,8 +98,6 @@ class Actor(nn.Module):
       self, obs, compute_pi=True, compute_log_pi=True, detach_encoder=False
     ):
         obs = self.encoder(obs, detach=detach_encoder)
-        # print(obs.shape)
-        # exit()
         mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
         # constrain log_std inside [log_std_min, log_std_max]
@@ -178,9 +173,7 @@ class ActorEquivariant(nn.Module):
                  num_filters, N):
         super().__init__()
 
-        print('='*80)
-        print('Use equivariant actor')
-        print('='*80)
+        print(f'===================================== Equivariant Actor with C{N}=====================================')
 
         self.act = gspaces.rot2dOnR2(N)
 
@@ -262,10 +255,6 @@ class Critic(nn.Module):
     ):
         super().__init__()
 
-        print('='*80)
-        print('Use normal critic')
-        print('='*80)
-
         self.encoder1 = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
@@ -330,9 +319,7 @@ class CriticEquivariant(nn.Module):
     ):
         super().__init__()
 
-        print('=' * 80)
-        print('Use equivariant critic')
-        print('=' * 80)
+        print(f'===================================== Equivariant Critic with C{N} =====================================')
 
         self.encoder = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
@@ -428,28 +415,27 @@ class SacAgent(object):
         self.detach_encoder = detach_encoder
         self.encoder_type = encoder_type
         self.alpha_fixed = alpha_fixed
-        # import ipdb;ipdb.set_trace()
         
         # build equivariant actor model
         self.actor = ActorEquivariant(
             obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
             encoder_feature_dim, actor_log_std_min, actor_log_std_max,
             num_layers, num_filters, num_rotations)
-        self.actor = nn.DataParallel(self.actor)
+        # self.actor = nn.DataParallel(self.actor)
         self.actor.to(device)
 
         # build equivariant critic model
         self.critic = CriticEquivariant(
             obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
             encoder_feature_dim, num_layers, num_filters, num_rotations)
-        self.critic = nn.DataParallel(self.critic)
+        # self.critic = nn.DataParallel(self.critic)
         self.critic.to(device)
 
         # build equivariant encoder model
         self.critic_target = CriticEquivariant(
             obs_shape, action_shape, hidden_dim, 'pixel-equivariant',
             encoder_feature_dim, num_layers, num_filters, num_rotations)
-        self.critic_target = nn.DataParallel(self.critic_target)
+        # self.critic_target = nn.DataParallel(self.critic_target)
         self.critic_target.to(device)
 
         # copy critic parameters to critic target
@@ -525,12 +511,15 @@ class SacAgent(object):
             target_Q1, target_Q2 = self.critic_target(next_obs, policy_action)
             target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_pi
             target_Q = reward + (not_done * self.discount * target_V)
+            torch.cuda.empty_cache()
 
         # get current Q estimates
         current_Q1, current_Q2 = self.critic(obs, action, detach_encoder=self.detach_encoder)
         critic_loss = F.mse_loss(current_Q1,target_Q) + F.mse_loss(current_Q2, target_Q)
         if step % self.log_interval == 0:
             L.log('train_critic/loss', critic_loss, step)
+            if self.args.wandb:
+                wandb.log({'train_critic_loss': critic_loss}, step=step)
 
         # Optimize the critic
         self.critic_optimizer.zero_grad()
@@ -540,7 +529,8 @@ class SacAgent(object):
         if self.args.lr_decay is not None:
             self.critic_lr_scheduler.step()
             L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
-
+            if self.args.wandb:
+                wandb.log({'train_critic_lr': self.critic_optimizer.param_groups[0]['lr']}, step=step)
 
         # self.critic.log(L, step)
 
@@ -554,6 +544,8 @@ class SacAgent(object):
 
         if step % self.log_interval == 0:
             L.log('train_actor/loss', actor_loss, step)
+            if self.args.wandb:
+                wandb.log({'train_actor_loss': actor_loss}, step=step)
             L.log('train_actor/target_entropy', self.target_entropy, step)
         entropy = 0.5 * log_std.shape[1] * \
                   (1.0 + np.log(2 * np.pi)) + log_std.sum(dim=-1)
@@ -568,7 +560,8 @@ class SacAgent(object):
         if self.args.lr_decay is not None:
             self.actor_lr_scheduler.step()
             L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
-
+            if self.args.wandb:
+                wandb.log({'train_actor_lr': self.actor_optimizer.param_groups[0]['lr']}, step=step)
         # self.actor.log(L, step)
 
         if not self.alpha_fixed:
@@ -578,18 +571,21 @@ class SacAgent(object):
             if step % self.log_interval == 0:
                 L.log('train_alpha/loss', alpha_loss, step)
                 L.log('train_alpha/value', self.alpha, step)
+                if self.args.wandb:
+                    wandb.log({'train_alpha_loss': alpha_loss}, step=step)
+                    wandb.log({'train_alpha_value': self.alpha}, step=step)
             alpha_loss.backward()
             self.log_alpha_optimizer.step()
 
     def update(self, replay_buffer, L, step):
         #sample from buffer
-        # if self.encoder_type == 'pixel':
-        #     obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_sac()
-        # else:
         obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
 
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)
+            if self.args.wandb:
+                wandb.log({'train_batch_reward': reward.mean()}, step=step)
+
         #----Update----
         #Critic
         self.update_critic(obs, action, reward, next_obs, not_done, L, step)

@@ -10,7 +10,7 @@ DEFAULT_CONFIG = {
     # train
     'agent': 'curl_sac',
     'init_steps': 1000,
-    'num_train_steps': 2000000,
+    'num_train_steps': 200000,
     'batch_size': 128,  # This is 256 for other sac but experiments show that they don't matter much for curl_sac
     'hidden_dim': 1024,
     # eval
@@ -54,6 +54,8 @@ DEFAULT_CONFIG = {
     'aug_n': 4,
     'aug_type': 'so2',
     # wandb
-    'wandb': True,
-    'wandb_seed': 0
+    'wandb': False,
+    'wandb_seed': 6,
+    # delta reward
+    'delta_reward': True
 }

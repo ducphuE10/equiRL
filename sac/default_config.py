@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
     'actor_update_freq': 2,
     # encoder
     'encoder_type': 'pixel',
-    'encoder_feature_dim': 50,
+    'encoder_feature_dim': 256,
     'encoder_lr': 1e-3,
     'encoder_tau': 0.05,
     'num_layers': 4,

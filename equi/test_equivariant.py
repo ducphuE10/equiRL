@@ -10,24 +10,26 @@ import numpy as np
 def main(message, x, act, obs_shape, num_filters, feature_dim, N):
     if message == 'Test equivariant encoder':
         encoder = PixelEncoderEquivariant(obs_shape=obs_shape, feature_dim=feature_dim, N=N, num_filters=num_filters)
-        y = encoder(escnn.nn.GeometricTensor(x, escnn.nn.FieldType(act, 3*[act.trivial_repr])))
+        field = escnn.nn.FieldType(act, obs_shape[0]*[act.trivial_repr])
+        y = encoder(escnn.nn.GeometricTensor(x, field))
         print('='*50)
         print('Test equivariant encoder')
         print('='*50)
 
-        x = escnn.nn.FieldType(act, 3*[act.trivial_repr])(x)
+        x = field(x)
 
         for i, g in enumerate(act.testing_elements):
             print(i, g)
+            # transform y by g
             y_tr = y.transform(g)
 
-            x_tr = x.transform(g)
-            x_90 = x_tr.tensor
-            y_ = encoder(escnn.nn.GeometricTensor(x_90, escnn.nn.FieldType(act, 3*[act.trivial_repr])))
+            # transform x by g
+            x_tr = x.transform(g).tensor
+            y_ = encoder(escnn.nn.GeometricTensor(x_tr, field))
 
             print(y_.tensor.reshape(1, -1))
             print(y_tr.tensor.reshape(1, -1))
-            assert torch.allclose(y_.tensor, y_tr.tensor, atol=1)
+            assert torch.allclose(y_.tensor, y_tr.tensor, atol=1e-2)
             print('OK')
             print('-'*50)
 
@@ -61,7 +63,7 @@ def main(message, x, act, obs_shape, num_filters, feature_dim, N):
         print('Test equivariant critic')
         print('='*50)
         action = torch.randn(1, 8)
-        critic = CriticEquivariant(obs_shape=obs_shape, action_shape=(8,), hidden_dim=feature_dim, encoder_type='pixel-equivariant', encoder_feature_dim=feature_dim, num_layers=1, num_filters=16, N=4)
+        critic = CriticEquivariant(obs_shape=obs_shape, action_shape=(8,), hidden_dim=feature_dim, encoder_type='pixel-equivariant', encoder_feature_dim=feature_dim, num_layers=1, num_filters=16, N=N)
 
         out1, out2 = critic(x, action)
         x = escnn.nn.FieldType(act, 3*[act.trivial_repr])(x)
@@ -86,12 +88,12 @@ def main(message, x, act, obs_shape, num_filters, feature_dim, N):
         print('Wrong message')
 
 if __name__ == '__main__':
-    N = 12
+    N = 8
     x = torch.randint(0, 255, (1, 3, 128, 128), dtype=torch.float32) / 255.0
     act = gspaces.rot2dOnR2(N)
     obs_shape = [3, 128, 128]
-    num_filters = 32
-    feature_dim = 256
+    num_filters = 16
+    feature_dim = 1
     main('Test equivariant encoder', x, act, obs_shape, num_filters, feature_dim, N)
     main('Test equivariant actor', x, act, obs_shape, num_filters, feature_dim, N)
     main('Test equivariant critic', x, act, obs_shape, num_filters, feature_dim, N)

@@ -9,7 +9,7 @@ action_repeat: 4 # not actually used
 # train
 num_train_steps: 1000000
 num_train_iters: 1
-num_seed_steps: 1000
+num_seed_steps: 1
 replay_buffer_capacity: 100000
 seed: 1
 # eval

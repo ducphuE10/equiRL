@@ -1,4 +1,4 @@
-from chester import config_ec2 as config
+from chester import config
 from io import StringIO
 import base64
 import os
