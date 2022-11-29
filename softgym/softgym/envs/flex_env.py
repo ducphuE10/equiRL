@@ -150,7 +150,7 @@ class FlexEnv(gym.Env):
             save_numpy_as_gif(np.array(self.video_frames), video_path, **kwargs)
         del self.video_frames
 
-    def reset(self, config=None, initial_state=None, config_id=None):
+    def reset(self, config=None, initial_state=None, config_id=None, eval_flag = False):
         if config is None:
             if config_id is None:
                 if self.eval_flag:
@@ -174,7 +174,7 @@ class FlexEnv(gym.Env):
             self.video_frames.append(self.render(mode='rgb_array'))
         return obs
 
-    def step(self, action, record_continuous_video=False, img_size=None):
+    def step(self, action, record_continuous_video=False, img_size=None, delta_reward = False):
         """ If record_continuous_video is set to True, will record an image for each sub-step"""
         frames = []
         for i in range(self.action_repeat):
@@ -226,9 +226,8 @@ class FlexEnv(gym.Env):
             img = img.reshape(height, width, 4)[::-1, :, :3]  # Need to reverse the height dimension
             _, depth = pyflex.render_cloth()
             depth = depth.reshape(height,width)[::-1]
-            mask = (depth < 5).astype(np.float32)
-            depth[depth>5] = 1.5
-            return img,depth,mask
+            depth[depth>5] = 0
+            return img,depth
         elif mode == 'human':
             raise NotImplementedError
 
@@ -241,15 +240,13 @@ class FlexEnv(gym.Env):
         return img
     def get_image_with_depth(self, width=720, height=720):
         """ use pyflex.render to get a rendered image. """
-        img, depth, mask = self.render(mode='rgb_depth')
+        img, depth= self.render(mode='rgb_depth')
         img = img.astype(np.float32)
         depth = np.expand_dims(depth*255.0, axis = 2)
-        mask = np.expand_dims(mask*255.0, axis = 2)
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
             depth = cv2.resize(depth, (width,height))
-            mask = cv2.resize(mask, (width,height))
-        return np.concatenate((img,depth,mask),axis = 2)
+        return np.concatenate((img,depth),axis = 2)
 
     def set_scene(self, config, state=None):
         """ Set up the flex scene """
