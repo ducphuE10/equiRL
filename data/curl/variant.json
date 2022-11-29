@@ -11,7 +11,7 @@
   "alpha_fixed": false,
   "alpha_lr": 0.0001,
   "aug_n": 4,
-  "aug_transition": true,
+  "aug_transition": false,
   "aug_type": "so2",
   "batch_size": 64,
   "clip_obs": null,
