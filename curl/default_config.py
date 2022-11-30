@@ -50,12 +50,12 @@ DEFAULT_CONFIG = {
     'detach_encoder': False,
     'log_interval': 1,
     # augment transition
-    'aug_transition': True,
+    'aug_transition': False,
     'aug_n': 4,
     'aug_type': 'so2',
     # wandb
-    'wandb': False,
-    'wandb_seed': 6,
+    'wandb': True,
+    'wandb_seed': 11,
     # delta reward
-    'delta_reward': True
+    'delta_reward': False
 }
