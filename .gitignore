@@ -1,4 +1,3 @@
-softgym/*
-softgym
 data/*
 wandb/*
+.vscode
