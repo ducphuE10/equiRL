@@ -6,7 +6,7 @@ reward_scales = {
     'PassWater': 20.0,
     'PourWater': 20.0,
     'ClothFold': 50.0,
-    'ClothFlatten': 100.0,
+    'ClothFlatten': 1.0,
     'ClothDrop': 50.0,
     'RopeFlatten': 50.0,
 }

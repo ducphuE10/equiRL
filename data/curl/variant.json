@@ -20,7 +20,7 @@
   "critic_target_update_freq": 2,
   "critic_tau": 0.01,
   "curl_latent_dim": 128,
-  "delta_reward": true,
+  "delta_reward": false,
   "detach_encoder": false,
   "discount": 0.99,
   "domain_name": "cartpole",
@@ -42,7 +42,7 @@
     "use_cached_states": true
   },
   "env_kwargs_camera_name": "default_camera",
-  "env_kwargs_num_variations": 50,
+  "env_kwargs_num_variations": 1000,
   "env_kwargs_observation_mode": "img_depth",
   "env_kwargs_render": true,
   "env_name": "ClothFlatten",
@@ -58,17 +58,17 @@
   "num_eval_episodes": 10,
   "num_filters": 32,
   "num_layers": 4,
-  "num_train_steps": 200000,
+  "num_train_steps": 1001000,
   "pre_transform_image_size": 128,
   "replay_buffer_capacity": 100000,
   "save_buffer": false,
   "save_model": true,
   "save_tb": false,
   "save_video": true,
-  "scale_reward": 100.0,
+  "scale_reward": 1.0,
   "seed": 100,
   "task_name": "swingup",
   "test_episodes": 10,
   "wandb": false,
-  "wandb_seed": 6
+  "wandb_seed": 11
 }

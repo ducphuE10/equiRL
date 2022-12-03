@@ -213,8 +213,8 @@ def main(args):
             obs_shape = (3, args.image_size, args.image_size)
             pre_aug_obs_shape = (3, args.pre_transform_image_size, args.pre_transform_image_size)
         else:
-            obs_shape = (4, args.image_size, args.image_size)
-            pre_aug_obs_shape = (4, args.pre_transform_image_size, args.pre_transform_image_size)
+            obs_shape = (1, args.image_size, args.image_size)
+            pre_aug_obs_shape = (1, args.pre_transform_image_size, args.pre_transform_image_size)
     else:
         obs_shape = env.observation_space.shape
         pre_aug_obs_shape = obs_shape
