@@ -234,19 +234,23 @@ class ReplayBufferAugmented(ReplayBuffer):
     
     def add(self, obs, action, reward, next_obs, done):
         super().add(obs, action, reward, next_obs, done)
-        # os.makedirs('augmented', exist_ok=True)
-        # img_obs = Image.fromarray(obs[0].numpy().transpose(1, 2, 0))
-        # img_next_obs = Image.fromarray(next_obs[0].numpy().transpose(1, 2, 0))
-        # img_obs.save('augmented/original.png')
-        # img_next_obs.save('augmented/original_next.png')
+        os.makedirs('augmented', exist_ok=True)
+        plt.figure(figsize=(15, 15))
+        plt.subplot(self.aug_n+1, 2, 1)
+        plt.imshow(obs[0].numpy().transpose(1, 2, 0))
+        plt.subplot(self.aug_n+1, 2, 2)
+        plt.imshow(next_obs[0].numpy().transpose(1, 2, 0))
+        a = None
         for i in range(self.aug_n):
             obs_, action_, reward_, next_obs_, done_ = augmentTransition(obs, action, reward, next_obs, done, DEFAULT_CONFIG['aug_type'])
-            # img_obs_ = Image.fromarray(obs_[0].numpy().transpose(1, 2, 0))
-            # img_next_obs_ = Image.fromarray(next_obs_[0].numpy().transpose(1, 2, 0))
-            # img_obs_.save(f'augmented/obs_{i}.png')
-            # img_next_obs_.save(f'augmented/next_obs_{i}.png')
+            plt.subplot(self.aug_n+1, 2, 2*i+3)
+            plt.imshow(obs_[0].numpy().transpose(1, 2, 0))
+            plt.subplot(self.aug_n+1, 2, 2*i+4)
+            plt.imshow(next_obs_[0].numpy().transpose(1, 2, 0))
             super().add(obs_, action_, reward_, next_obs_, done_)
-        # exit()
+            a = action_
+        plt.title(f'{action}---{a}')
+        plt.savefig(f'augmented/{self.idx}.png')
 
 def augmentTransition(obs, action, reward, next_obs, done, aug_type):
     if aug_type=='se2':
@@ -257,8 +261,6 @@ def augmentTransition(obs, action, reward, next_obs, done, aug_type):
         return augmentTransitionTranslate(obs, action, reward, next_obs, done)
     elif aug_type=='shift':
         return augmentTransitionShift(obs, action, reward, next_obs, done)
-    elif aug_type=='crop':
-        return augmentTransitionCrop(obs, action, reward, next_obs, done)
     else:
         raise NotImplementedError
 
@@ -320,18 +322,6 @@ def augmentTransitionShift(obs, action, reward, next_obs, done):
     next_obs = padded_next_obs[:, :, mag_x:mag_x+heightmap_size, mag_y:mag_y+heightmap_size]
     return obs, action, reward, next_obs, done
 
-def augmentTransitionCrop(obs, action, reward, next_obs, done):
-    crop_size = DEFAULT_CONFIG['image_size']
-    heightmap_size = obs.shape[-1]
-    crop_max = heightmap_size - crop_size + 1
-    w1 = np.random.randint(0, crop_max)
-    h1 = np.random.randint(0, crop_max)
-    obs = obs[:, :, h1:h1+crop_size, w1:w1+crop_size]
-    next_obs = next_obs[:, :, h1:h1+crop_size, w1:w1+crop_size]
-    obs = transforms.Resize((heightmap_size, heightmap_size))(obs)
-    next_obs = transforms.Resize((heightmap_size, heightmap_size))(next_obs)
-    return obs, action, reward, next_obs, done
-
 def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_trans_zero=False):
     image_size = current_image.shape[-2:]
     
@@ -358,8 +348,6 @@ def perturb(current_image, next_image, dxy1, dxy2, set_theta_zero=False, set_tra
         if next_image is not None:
             next_image = affine_transform(next_image, np.linalg.inv(transform), mode='nearest', order=1)
     else:
-        # current_image = np.zeros_like(current_image)
-        # next_image = np.zeros_like(next_image)
         for i in range(current_image.shape[0]):
             current_image[i, :, :] = affine_transform(current_image[i, :, :], np.linalg.inv(transform), mode='nearest', order=1)
             if next_image is not None:
