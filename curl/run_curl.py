@@ -6,7 +6,7 @@ reward_scales = {
     'PassWater': 20.0,
     'PourWater': 20.0,
     'ClothFold': 50.0,
-    'ClothFlatten': 100.0,
+    'ClothFlatten': 1.0,
     'ClothDrop': 50.0,
     'RopeFlatten': 50.0,
 }
@@ -71,7 +71,7 @@ def main():
     parser.add_argument('--env_kwargs_render', default=True, type=bool)  # Turn off rendering can speed up training
     parser.add_argument('--env_kwargs_camera_name', default='default_camera', type=str)
     parser.add_argument('--env_kwargs_observation_mode', default='img_depth', type=str)  # Should be in ['key_point', 'cam_rgb', 'point_cloud', 'img_depth']
-    parser.add_argument('--env_kwargs_num_variations', default=1000, type=int)
+    parser.add_argument('--env_kwargs_num_variations', default=12, type=int)
 
     args = parser.parse_args()
 

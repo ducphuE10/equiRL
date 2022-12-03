@@ -153,7 +153,7 @@ class FlexEnv(gym.Env):
     def reset(self, config=None, initial_state=None, config_id=None, eval_flag = False):
         if config is None:
             if config_id is None:
-                if self.eval_flag:
+                if eval_flag:
                     eval_beg = int(0.8 * len(self.cached_configs))
                     config_id = np.random.randint(low=eval_beg, high=len(self.cached_configs)) if not self.deterministic else eval_beg
                 else:
@@ -174,7 +174,7 @@ class FlexEnv(gym.Env):
             self.video_frames.append(self.render(mode='rgb_array'))
         return obs
 
-    def step(self, action, record_continuous_video=False, img_size=None, delta_reward = False):
+    def step(self, action, record_continuous_video=False, img_size=None):
         """ If record_continuous_video is set to True, will record an image for each sub-step"""
         frames = []
         for i in range(self.action_repeat):
@@ -182,7 +182,7 @@ class FlexEnv(gym.Env):
             if record_continuous_video and i % 2 == 0:  # No need to record each step
                 frames.append(self.get_image(img_size, img_size))
         obs = self._get_obs()
-        reward = self.compute_reward(action, obs, set_prev_reward=True)
+        reward = self.compute_reward(action, obs, set_prev_reward=True) / self.get_current_config()['flatten_area']
         info = self._get_info()
 
         if self.recording:
@@ -227,7 +227,7 @@ class FlexEnv(gym.Env):
             _, depth = pyflex.render_cloth()
             depth = depth.reshape(height,width)[::-1]
             depth[depth>5] = 0
-            return img,depth
+            return img, depth
         elif mode == 'human':
             raise NotImplementedError
 
@@ -246,7 +246,7 @@ class FlexEnv(gym.Env):
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
             depth = cv2.resize(depth, (width,height))
-        return np.concatenate((img,depth),axis = 2)
+        return np.concatenate((img,depth), axis = 2)
 
     def set_scene(self, config, state=None):
         """ Set up the flex scene """
