@@ -102,7 +102,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
                     else:
                         action = agent.select_action(obs)
                 # action = np.array([0.0, 0.0, 0.1, 0.15, 0.0, 0.0, 0.1, 0.01])
-                obs, reward, done, info = env.step(action, delta_reward=args.delta_reward)
+                obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 ep_info.append(info)
                 frames.append(env.get_image(128, 128))
@@ -292,7 +292,7 @@ def main(args):
         # run training update
         if step >= args.init_steps:
             agent.update(replay_buffer, L, step)
-        next_obs, reward, done, info = env.step(action, delta_reward=args.delta_reward)
+        next_obs, reward, done, info = env.step(action)
     
         # allow infinit bootstrap
         ep_info.append(info)

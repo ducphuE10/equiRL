@@ -20,7 +20,6 @@
   "critic_target_update_freq": 2,
   "critic_tau": 0.01,
   "curl_latent_dim": 128,
-  "delta_reward": false,
   "detach_encoder": false,
   "discount": 0.99,
   "domain_name": "cartpole",
@@ -42,8 +41,8 @@
     "use_cached_states": true
   },
   "env_kwargs_camera_name": "default_camera",
-  "env_kwargs_num_variations": 1000,
-  "env_kwargs_observation_mode": "cam_rgb",
+  "env_kwargs_num_variations": 12,
+  "env_kwargs_observation_mode": "img_depth",
   "env_kwargs_render": true,
   "env_name": "ClothFlatten",
   "eval_freq": 10000,
