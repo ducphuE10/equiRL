@@ -70,7 +70,7 @@ def main():
     # Override environment arguments
     parser.add_argument('--env_kwargs_render', default=True, type=bool)  # Turn off rendering can speed up training
     parser.add_argument('--env_kwargs_camera_name', default='default_camera', type=str)
-    parser.add_argument('--env_kwargs_observation_mode', default='img_depth', type=str)  # Should be in ['key_point', 'cam_rgb', 'point_cloud', 'img_depth']
+    parser.add_argument('--env_kwargs_observation_mode', default='only_depth', type=str)  # Should be in ['key_point', 'cam_rgb', 'point_cloud', 'img_depth', 'only_depth']
     parser.add_argument('--env_kwargs_num_variations', default=1000, type=int)
 
     args = parser.parse_args()

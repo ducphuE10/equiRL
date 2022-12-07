@@ -54,7 +54,7 @@ DEFAULT_CONFIG = {
     'aug_n': 4,
     'aug_type': 'so2',
     # wandb
-    'wandb': True,
+    'wandb': False,
     'wandb_seed': 11,
     # delta reward
     'delta_reward': False

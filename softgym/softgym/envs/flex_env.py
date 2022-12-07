@@ -239,7 +239,7 @@ class FlexEnv(gym.Env):
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
         return img
-    def get_image_with_depth(self, width=720, height=720):
+    def get_image_with_depth(self, width=720, height=720, get_image = True):
         """ use pyflex.render to get a rendered image. """
         img, depth= self.render(mode='rgb_depth')
         img = img.astype(np.float32)
@@ -247,8 +247,10 @@ class FlexEnv(gym.Env):
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
             depth = cv2.resize(depth, (width,height))
-        # return np.concatenate((img,depth),axis = 2)
-        return depth
+        if get_image:
+            return np.concatenate((img,depth),axis = 2) 
+        else:
+            return depth
 
     def set_scene(self, config, state=None):
         """ Set up the flex scene """
