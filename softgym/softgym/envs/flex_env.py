@@ -153,7 +153,7 @@ class FlexEnv(gym.Env):
     def reset(self, config=None, initial_state=None, config_id=None, eval_flag = False):
         if config is None:
             if config_id is None:
-                if self.eval_flag:
+                if eval_flag:
                     eval_beg = int(0.8 * len(self.cached_configs))
                     config_id = np.random.randint(low=eval_beg, high=len(self.cached_configs)) if not self.deterministic else eval_beg
                 else:
@@ -174,7 +174,7 @@ class FlexEnv(gym.Env):
             self.video_frames.append(self.render(mode='rgb_array'))
         return obs
 
-    def step(self, action, record_continuous_video=False, img_size=None, delta_reward = False):
+    def step(self, action, record_continuous_video=False, img_size=None):
         """ If record_continuous_video is set to True, will record an image for each sub-step"""
         frames = []
         for i in range(self.action_repeat):
@@ -228,7 +228,7 @@ class FlexEnv(gym.Env):
             _, depth = pyflex.render_cloth()
             depth = depth.reshape(height,width)[::-1]
             depth[depth>5] = 0
-            return img,depth
+            return img, depth
         elif mode == 'human':
             raise NotImplementedError
 
