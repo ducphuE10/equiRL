@@ -8,7 +8,7 @@ import copy
 from equi import utils
 from equi.logger import Logger
 
-from equi.sac_agent import SacAgent
+from equi.equi_agent import SacAgent
 from equi.default_config import DEFAULT_CONFIG
 
 from chester import logger
@@ -38,22 +38,10 @@ def vv_to_args(vv):
 
     args = VArgs(vv)
 
-    # Dump parameters
-    # with open(os.path.join(logger.get_dir(), 'variant.json'), 'w') as f:
-    #     json.dump(vv, f, indent=2, sort_keys=True)
-
     return args
 
 
 def run_task(vv, log_dir=None, exp_name=None):
-    # if log_dir or logger.get_dir() is None:
-    #     logger.configure(dir=log_dir, exp_name=exp_name, format_strs=['csv'])
-    # logdir = logger.get_dir()
-    # assert logdir is not None
-    # os.makedirs(logdir, exist_ok=True)
-    # updated_vv = copy.copy(DEFAULT_CONFIG)
-    # updated_vv.update(**vv)
-    # main(vv_to_args(updated_vv))
     updated_vv = copy.copy(DEFAULT_CONFIG)
     updated_vv.update(**vv)
     args = vv_to_args(updated_vv)
@@ -102,11 +90,8 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
             frames = [env.get_image(128, 128)]
             rewards = []
             while not done:
-                # center crop image
                 if args.encoder_type == 'pixel':
-                    # print(obs.shape)
-                    # obs = utils.center_crop_image(obs, args.image_size)
-                    if obs.shape[0] ==1:
+                    if obs.shape[0] == 1:
                         obs = obs[0]
                     # print(obs.shape)
                     
@@ -115,7 +100,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
                         action = agent.sample_action(obs)
                     else:
                         action = agent.select_action(obs)
-                obs, reward, done, info = env.step(action, delta_reward=args.delta_reward)
+                obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 ep_info.append(info)
                 frames.append(env.get_image(128, 128))
@@ -188,6 +173,7 @@ def make_agent(obs_shape, action_shape, args, device):
 
 
 def main(args):
+    # import ipdb; ipdb.set_trace()
     torch.cuda.empty_cache()
     if args.seed == -1:
         args.__dict__["seed"] = np.random.randint(1, 1000000)
@@ -275,7 +261,10 @@ def main(args):
         if done:
             if step > 0:
                 if step % args.log_interval == 0:
-                    L.log('train/duration', time.time() - start_time, step)
+                    finish_time = time.time()
+                    L.log('train/duration', finish_time - start_time, step)
+                    if args.wandb:
+                        wandb.log({'Duration': finish_time - start_time})
                     for key, val in get_info_stats([ep_info]).items():
                         L.log('train/info_' + key, val, step)
                     L.dump(step)
@@ -302,8 +291,9 @@ def main(args):
         # run training update
         if step >= args.init_steps:
             agent.update(replay_buffer, L, step)
-        next_obs, reward, done, info = env.step(action, delta_reward=args.delta_reward)
-
+        s_e = time.time()
+        next_obs, reward, done, info = env.step(action)
+        print(f'env.step time: {time.time() - s_e}')
         # allow infinit bootstrap
         ep_info.append(info)
         done_bool = 0 if episode_step + 1 == env.horizon else float(done)

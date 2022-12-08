@@ -289,8 +289,10 @@ def main(args):
         # run training update
         if step >= args.init_steps:
             agent.update(replay_buffer, L, step)
+        s_e = time.time()
         next_obs, reward, done, info = env.step(action)
-    
+        print(f'env.step time: {time.time() - s_e}')
+
         # allow infinit bootstrap
         ep_info.append(info)
         done_bool = 0 if episode_step + 1 == env.horizon else float(done)

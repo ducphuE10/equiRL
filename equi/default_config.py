@@ -12,9 +12,9 @@ DEFAULT_CONFIG = {
     'init_steps': 1000,
     'num_train_steps': 2000000,
     'batch_size': 128,  # This is 256 for other sac but experiments show that they don't matter much for curl_sac
-    'hidden_dim': 1024,
+    'hidden_dim': 128,
     # eval
-    'eval_freq': 10000,
+    'eval_freq': 5000,
     'num_eval_episodes': 10,
     # critic
     'critic_lr': 1e-3,
@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
     'actor_update_freq': 2,
     # encoder
     'encoder_type': 'pixel',
-    'encoder_feature_dim': 256,
+    'encoder_feature_dim': 128,
     'encoder_lr': 1e-3,
     'encoder_tau': 0.05,
     'num_layers': 4,
@@ -50,14 +50,12 @@ DEFAULT_CONFIG = {
     'detach_encoder': False,
     'log_interval': 1,
     # augment transition
-    'aug_transition': False,
+    'aug_transition': True,
     'aug_n': 4,
     'aug_type': 'so2',
     # equivariant
     'num_rotations': 8,
     # wandb
-    'wandb': True,
-    'wandb_seed': 1,
-    # delta reward
-    'delta_reward': False
+    'wandb': False,
+    'wandb_seed': 0
 }

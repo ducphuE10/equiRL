@@ -175,6 +175,7 @@ class ActorEquivariant(nn.Module):
 
         print(f'===================================== Equivariant Actor with C{N}=====================================')
 
+        assert encoder_feature_dim == hidden_dim
         self.act = gspaces.rot2dOnR2(N)
 
         self.action_shape = action_shape
@@ -187,10 +188,6 @@ class ActorEquivariant(nn.Module):
         )
 
         self.conv = nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
-                            kernel_size=1, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), inplace=True),
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, 2*[self.act.irrep(1)] + (self.action_shape[0]*2 -4)*[self.act.trivial_repr]), 
                             kernel_size=1, padding=0, initialize=True)
@@ -318,20 +315,21 @@ class CriticEquivariant(nn.Module):
       encoder_feature_dim, num_layers, num_filters, N
     ):
         super().__init__()
-
+        assert hidden_dim == encoder_feature_dim
         print(f'===================================== Equivariant Critic with C{N} =====================================')
 
         self.encoder = make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
             num_filters, output_logits=False, N=N
         )
+    
         self.act = gspaces.rot2dOnR2(N)
         self.action_shape = action_shape
         self.obs_shape = obs_shape
-        self.encoder_feature_dim = encoder_feature_dim
+        self.hidden_dim = hidden_dim
 
         self.Q1 = nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]),
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]),
                             escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
                             kernel_size=1, padding=0, initialize=True),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), inplace=True),
@@ -342,7 +340,7 @@ class CriticEquivariant(nn.Module):
         )
 
         self.Q2 = nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]),
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]),
                             escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), 
                             kernel_size=1, padding=0, initialize=True),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, hidden_dim*[self.act.regular_repr]), inplace=True),
@@ -361,7 +359,7 @@ class CriticEquivariant(nn.Module):
         dxy = torch.cat([action[:, 0:1], action[:, 2:3], action[:, 4:5], action[:, 6:7]], dim=1).reshape(batch_size, 4, 1, 1)
         inv_act = torch.cat([action[:, 1:2], action[:, 3:4], action[:, 5:6], action[:, 7:8]], dim=1).reshape(batch_size, 4, 1, 1)
         cat = torch.cat((conv_out.tensor, inv_act, dxy), dim=1)
-        cat_geo = escnn.nn.GeometricTensor(cat, escnn.nn.FieldType(self.act, self.encoder_feature_dim*[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]))
+        cat_geo = escnn.nn.GeometricTensor(cat, escnn.nn.FieldType(self.act, self.hidden_dim *[self.act.regular_repr] + (self.action_shape[0] - 4)*[self.act.trivial_repr] + 2*[self.act.irrep(1)]))
         q1 = self.Q1(cat_geo).tensor.reshape(batch_size, 1)
         q2 = self.Q2(cat_geo).tensor.reshape(batch_size, 1)
         return q1, q2
@@ -485,15 +483,10 @@ class SacAgent(object):
                 obs = torch.from_numpy(obs)
             obs = obs.to(torch.float32).to(self.device)
             obs = obs.unsqueeze(0)
-            mu, _, _, _ = self.actor(
-                obs, compute_pi=False, compute_log_pi=False
-            )
+            mu, _, _, _ = self.actor(obs, compute_pi=False, compute_log_pi=False)
             return mu.cpu().data.numpy().flatten()
 
-    def sample_action(self, obs):
-        # if obs.shape[-1] != self.image_size:
-            # obs = utils.center_crop_image(obs, self.image_size)
-        
+    def sample_action(self, obs):     
         if obs.shape[0] == 1:
             obs = obs[0]
 
@@ -511,7 +504,6 @@ class SacAgent(object):
             target_Q1, target_Q2 = self.critic_target(next_obs, policy_action)
             target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_pi
             target_Q = reward + (not_done * self.discount * target_V)
-            torch.cuda.empty_cache()
 
         # get current Q estimates
         current_Q1, current_Q2 = self.critic(obs, action, detach_encoder=self.detach_encoder)
@@ -528,7 +520,7 @@ class SacAgent(object):
 
         if self.args.lr_decay is not None:
             self.critic_lr_scheduler.step()
-            L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
+            # L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
             if self.args.wandb:
                 wandb.log({'train_critic_lr': self.critic_optimizer.param_groups[0]['lr']}, step=step)
 
@@ -546,11 +538,8 @@ class SacAgent(object):
             L.log('train_actor/loss', actor_loss, step)
             if self.args.wandb:
                 wandb.log({'train_actor_loss': actor_loss}, step=step)
-            L.log('train_actor/target_entropy', self.target_entropy, step)
-        entropy = 0.5 * log_std.shape[1] * \
-                  (1.0 + np.log(2 * np.pi)) + log_std.sum(dim=-1)
-        if step % self.log_interval == 0:
-            L.log('train_actor/entropy', entropy.mean(), step)
+                # wandb.log({'train_actor_target_entropy': self.target_entropy}, step=step)
+        entropy = 0.5 * log_std.shape[1] * (1.0 + np.log(2 * np.pi)) + log_std.sum(dim=-1)
 
         # optimize the actor
         self.actor_optimizer.zero_grad()
@@ -559,15 +548,13 @@ class SacAgent(object):
 
         if self.args.lr_decay is not None:
             self.actor_lr_scheduler.step()
-            L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
+            # L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
             if self.args.wandb:
                 wandb.log({'train_actor_lr': self.actor_optimizer.param_groups[0]['lr']}, step=step)
-        # self.actor.log(L, step)
 
         if not self.alpha_fixed:
             self.log_alpha_optimizer.zero_grad()
-            alpha_loss = (self.alpha *
-                          (-log_pi - self.target_entropy).detach()).mean()
+            alpha_loss = (self.alpha * (-log_pi - self.target_entropy).detach()).mean()
             if step % self.log_interval == 0:
                 L.log('train_alpha/loss', alpha_loss, step)
                 L.log('train_alpha/value', self.alpha, step)
@@ -579,7 +566,9 @@ class SacAgent(object):
 
     def update(self, replay_buffer, L, step):
         #sample from buffer
+        s_s = time.time()
         obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
+        print('sample time', time.time() - s_s)
 
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)
@@ -588,13 +577,17 @@ class SacAgent(object):
 
         #----Update----
         #Critic
+        s_c = time.time()
         self.update_critic(obs, action, reward, next_obs, not_done, L, step)
+        print('critic time', time.time() - s_c)
         #Actor
         if step % self.actor_update_freq == 0: #default actor_update_freq = 2
+            s_a = time.time()
             self.update_actor_and_alpha(obs, L, step)
+            print('actor time', time.time() - s_a)
         #soft update
         if step % self.critic_target_update_freq == 0:
-            utils.soft_update_params(self.critic, self.critic_target,self.critic_tau)
+            utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
 
     def save(self, model_dir, step):
         torch.save(

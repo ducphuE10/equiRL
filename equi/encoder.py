@@ -126,7 +126,7 @@ class IdentityEncoder(nn.Module):
 
 class PixelEncoderEquivariant(nn.Module):
     """Equivariant convolutional encoder of pixels observations."""
-    def __init__(self, obs_shape, feature_dim=512, num_layers=4, num_filters=32, output_logits=False, N=4):
+    def __init__(self, obs_shape, feature_dim=128, num_filters=16, N=4):
         super().__init__()
 
         print(f'================== Equivariant Encoder with C{N} ==================')
@@ -178,15 +178,15 @@ class PixelEncoderEquivariant(nn.Module):
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, 16*num_filters*[self.act.regular_repr]), inplace=True),
 
             escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 16*num_filters*[self.act.regular_repr]),
-                            escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
+                            escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
                             kernel_size=3, padding=0, initialize=True),
-            escnn.nn.ReLU(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), inplace=True),
-            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]), 2)
+            escnn.nn.ReLU(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), inplace=True),
+            escnn.nn.PointwiseMaxPool(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), 2)
             )
 
             # 3 x 3
         self.convs5 = torch.nn.Sequential(
-            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, 8*num_filters*[self.act.regular_repr]),
+            escnn.nn.R2Conv(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
                             escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]),
                             kernel_size=3, padding=0, initialize=True),
             escnn.nn.ReLU(escnn.nn.FieldType(self.act, self.feature_dim*[self.act.regular_repr]), inplace=True)
@@ -208,7 +208,7 @@ _AVAILABLE_ENCODERS = {'pixel': PixelEncoder, 'identity': IdentityEncoder, 'pixe
 
 
 def make_encoder(
-    encoder_type, obs_shape, feature_dim, num_layers, num_filters, output_logits=False, N=8
+    encoder_type, obs_shape, feature_dim, num_layers, num_filters, output_logits, N
 ):
     assert encoder_type in _AVAILABLE_ENCODERS
     if encoder_type != 'pixel-equivariant':
@@ -216,5 +216,5 @@ def make_encoder(
             obs_shape, feature_dim, num_layers, num_filters, output_logits
         )
     return _AVAILABLE_ENCODERS[encoder_type](
-        obs_shape, feature_dim, num_layers, num_filters, output_logits, N
+        obs_shape, feature_dim, num_filters, N
     )

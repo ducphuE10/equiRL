@@ -1,5 +1,5 @@
 from equi.encoder import PixelEncoderEquivariant
-from equi.sac_agent import ActorEquivariant, CriticEquivariant
+from equi.equi_agent import ActorEquivariant, CriticEquivariant
 
 import escnn
 from escnn import gspaces
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     act = gspaces.rot2dOnR2(N)
     obs_shape = [3, 128, 128]
     num_filters = 16
-    feature_dim = 1
+    feature_dim = 256
     main('Test equivariant encoder', x, act, obs_shape, num_filters, feature_dim, N)
     main('Test equivariant actor', x, act, obs_shape, num_filters, feature_dim, N)
     main('Test equivariant critic', x, act, obs_shape, num_filters, feature_dim, N)

@@ -14,7 +14,7 @@ class ClothEnv(FlexEnv):
         self.cloth_particle_radius = particle_radius
         super().__init__(**kwargs)
 
-        assert observation_mode in ['key_point', 'point_cloud', 'cam_rgb', 'img_depth']
+        assert observation_mode in ['key_point', 'point_cloud', 'cam_rgb', 'img_depth', 'only_depth']
         assert action_mode in ['picker', 'pickerpickplace', 'sawyer', 'franka', 'picker_qpg']
         self.observation_mode = observation_mode
 
@@ -56,6 +56,10 @@ class ClothEnv(FlexEnv):
 
         elif observation_mode == 'img_depth':
             self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 4),
+                                         dtype=np.float32)
+
+        elif observation_mode == 'only_depth':
+            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 1),
                                          dtype=np.float32)
 
     def _sample_cloth_size(self):
@@ -118,6 +122,8 @@ class ClothEnv(FlexEnv):
             return self.get_image(self.camera_height, self.camera_width)
         if self.observation_mode == 'img_depth':
             return self.get_image_with_depth(self.camera_height, self.camera_width)
+        if self.observation_mode == 'only_depth':
+            return self.get_image_with_depth(self.camera_height, self.camera_width, get_image = False)
             
         if self.observation_mode == 'point_cloud':
             particle_pos = np.array(pyflex.get_positions()).reshape([-1, 4])[:, :3].flatten()

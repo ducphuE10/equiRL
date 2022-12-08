@@ -28,10 +28,10 @@ def postprocess_observation(observation, bit_depth):
 def _images_to_observation(images, bit_depth, image_dim, normalize_observation=True):
     dtype = torch.float32 if normalize_observation else torch.uint8
     if images.shape[0] != image_dim:
-        images = torch.tensor(cv2.resize(images, (image_dim, image_dim), interpolation=cv2.INTER_LINEAR).transpose(2, 0, 1),
+        images = torch.as_tensor(cv2.resize(images, (image_dim, image_dim), interpolation=cv2.INTER_LINEAR).transpose(2, 0, 1),
                               dtype=dtype)  # Resize and put channel first
     else:
-        images = torch.tensor(images.transpose(2, 0, 1), dtype=dtype)  # Resize and put channel first
+        images = torch.as_tensor(images.transpose(2, 0, 1), dtype=dtype)  # Resize and put channel first
     if normalize_observation:
         preprocess_observation_(images, bit_depth)  # Quantise, centre and dequantise inplace
     return images.unsqueeze(dim=0)  # Add batch dimension
@@ -61,7 +61,7 @@ class SoftGymEnv(object):
         if self.symbolic:
             if self.obs_process is None:
                 if not isinstance(obs, tuple):
-                    return torch.tensor(obs, dtype=torch.float32)
+                    return torch.as_tensor(obs, dtype=torch.float32)
                 else:
                     return obs
             else:
@@ -82,7 +82,7 @@ class SoftGymEnv(object):
             if self.symbolic:
                 if self.obs_process is None:
                     if not isinstance(obs, tuple):
-                        obs = torch.tensor(obs, dtype=torch.float32)
+                        obs = torch.as_tensor(obs, dtype=torch.float32)
                 else:
                     obs = self.obs_process(obs)
             else:
@@ -151,15 +151,12 @@ class EnvBatcher():
 
     # Steps/resets every environment and returns (observation, reward, done)
     def step(self, actions):
-        done_mask = torch.nonzero(torch.tensor(self.dones))[:,
-                    0]  # Done mask to blank out observations and zero rewards for previously terminated environments
+        done_mask = torch.nonzero(torch.as_tensor(self.dones))[:, 0]  # Done mask to blank out observations and zero rewards for previously terminated environments
         observations, rewards, dones = zip(*[env.step(action) for env, action in zip(self.envs, actions)])
         dones = [d or prev_d for d, prev_d in
                  zip(dones, self.dones)]  # Env should remain terminated if previously terminated
         self.dones = dones
-        observations, rewards, dones = torch.cat(observations), torch.tensor(rewards,
-                                                                             dtype=torch.float32), torch.tensor(dones,
-                                                                                                                dtype=torch.uint8)
+        observations, rewards, dones = torch.cat(observations), torch.as_tensor(rewards, dtype=torch.float32), torch.as_tensor(dones, dtype=torch.uint8)
         observations[done_mask] = 0
         rewards[done_mask] = 0
         return observations, rewards, dones, {}

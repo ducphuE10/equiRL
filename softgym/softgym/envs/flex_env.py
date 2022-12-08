@@ -182,7 +182,8 @@ class FlexEnv(gym.Env):
             if record_continuous_video and i % 2 == 0:  # No need to record each step
                 frames.append(self.get_image(img_size, img_size))
         obs = self._get_obs()
-        reward = self.compute_reward(action, obs, set_prev_reward=True) / self.get_current_config()['flatten_area']
+        reward = self.compute_reward(action, obs, set_prev_reward=True)
+        reward = reward/self.current_config['flatten_area']
         info = self._get_info()
 
         if self.recording:
@@ -238,7 +239,7 @@ class FlexEnv(gym.Env):
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
         return img
-    def get_image_with_depth(self, width=720, height=720):
+    def get_image_with_depth(self, width=720, height=720, get_image = True):
         """ use pyflex.render to get a rendered image. """
         img, depth= self.render(mode='rgb_depth')
         img = img.astype(np.float32)
@@ -246,7 +247,10 @@ class FlexEnv(gym.Env):
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
             depth = cv2.resize(depth, (width,height))
-        return np.concatenate((img,depth), axis = 2)
+        if get_image:
+            return np.concatenate((img,depth),axis = 2) 
+        else:
+            return depth
 
     def set_scene(self, config, state=None):
         """ Set up the flex scene """
