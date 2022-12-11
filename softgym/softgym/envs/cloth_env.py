@@ -168,6 +168,7 @@ class ClothEnv(FlexEnv):
                                  *camera_params['pos'][:], *camera_params['angle'][:], camera_params['width'], camera_params['height'], mass,
                                  config['flip_mesh']])
         if self.version == 2:
+            import ipdb; ipdb.set_trace()
             robot_params = [1.] if self.action_mode in ['sawyer', 'franka'] else []
             self.params = (scene_params, robot_params)
             pyflex.set_scene(env_idx, scene_params, 0, robot_params)

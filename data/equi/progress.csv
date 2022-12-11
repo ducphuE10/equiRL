@@ -1,0 +1,2 @@
+eval/eval_time,eval/info_performance_mean,eval/episode_reward,eval/info_normalized_performance_mean,eval/info_performance_final,eval/episode,eval/mean_episode_reward,eval/best_episode_reward,eval/info_normalized_performance_final
+117.56691813468933,0.09995333,28.50346296628538,0.028930284,0.10202259,0,28.17568094749933,34.78212809983407,0.036662567

@@ -183,6 +183,7 @@ def main(args):
     
     if args.wandb:
         # ed44c646a708f75a7fe4e39aee3844f8bfe44858
+        wandb.login(key='ed44c646a708f75a7fe4e39aee3844f8bfe44858')
         group_name = args.exp_name + '_aug' if args.aug_transition else args.exp_name + '_no_aug'
         wandb.init(project=args.env_name, settings=wandb.Settings(_disable_stats=True), group=group_name, name=f's{args.wandb_seed}', entity='longdinh')
     else:
@@ -282,18 +283,18 @@ def main(args):
                 L.log('train/episode', episode, step)
 
         # sample action for data collection
-        if step < args.init_steps:
-            action = env.action_space.sample()
-        else:
-            with utils.eval_mode(agent):
+        # if step < args.init_steps:
+        #     action = env.action_space.sample()
+        # else:
+        #     with utils.eval_mode(agent):
+        #         action = agent.sample_action(obs)
+        with utils.eval_mode(agent):
                 action = agent.sample_action(obs)
 
         # run training update
         if step >= args.init_steps:
             agent.update(replay_buffer, L, step)
-        s_e = time.time()
         next_obs, reward, done, info = env.step(action)
-        print(f'env.step time: {time.time() - s_e}')
         # allow infinit bootstrap
         ep_info.append(info)
         done_bool = 0 if episode_step + 1 == env.horizon else float(done)

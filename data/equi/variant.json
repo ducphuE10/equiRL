@@ -43,7 +43,7 @@
   "env_kwargs_camera_name": "default_camera",
   "env_kwargs_num_variations": 1000,
   "env_kwargs_observation_mode": "cam_rgb",
-  "env_kwargs_render": false,
+  "env_kwargs_render": true,
   "env_name": "ClothFlatten",
   "eval_freq": 5000,
   "exp_name": "EQUI_SAC",

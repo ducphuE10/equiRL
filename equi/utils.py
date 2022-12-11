@@ -441,3 +441,24 @@ def center_crop_image(image, output_size):
     image = image[:, top:top + new_h, left:left + new_w]
     # print('output image shape:', image.shape)
     return image
+
+def preprocess_action(action):
+    dxy = action[:, ::2]
+    dxy1 = dxy[:, :2]
+    dxy1[:, 0] = torch.where(dxy1[:, 0] != 0, dxy1[:, 0], 1e-5)
+    dxy2 = dxy[:, 2:]
+    dz = torch.cat([action[:, 1:2], action[:, 5:6]], dim=1)
+    p = action[:, 3:4]
+    m = dxy2[:, 0] / dxy1[:, 0]
+    m = torch.clamp(m, -1.0, 1.0).view(-1, 1)
+    new_action = torch.cat([dxy[:, :2], dz, p, m], dim=1)
+    return new_action
+
+def posprocess_action(action):
+    dxy1 = action[:, :2]
+    dz = action[:, 2:4]
+    p = action[:, 4:5]
+    m = action[:, 5:6]
+    dxy2 = dxy1 * m
+    new_action = torch.cat([dxy1[:, 0:1], dz[:, 0:1], dxy1[:, 1:], p,  dxy2[:, 0:1], dz[:, 1:], dxy2[:, 1:], p], dim=1)
+    return new_action

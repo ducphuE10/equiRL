@@ -101,7 +101,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
                         action = agent.sample_action(obs)
                     else:
                         action = agent.select_action(obs)
-                # action = np.array([0.0, 0.0, 0.1, 0.15, 0.0, 0.0, 0.1, 0.01])
+                # action = np.array([1.0, 0.0, 1.0, 0.15, -1.0, 0.0, -1.0, 0.01])
                 obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 ep_info.append(info)
@@ -136,7 +136,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
 
     run_eval_loop(sample_stochastically=False)
     L.dump(step)
-
+    
 
 def make_agent(obs_shape, action_shape, args, device):
     if args.agent == 'curl_sac':
@@ -289,9 +289,7 @@ def main(args):
         # run training update
         if step >= args.init_steps:
             agent.update(replay_buffer, L, step)
-        s_e = time.time()
         next_obs, reward, done, info = env.step(action)
-        print(f'env.step time: {time.time() - s_e}')
 
         # allow infinit bootstrap
         ep_info.append(info)
