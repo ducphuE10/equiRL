@@ -17,6 +17,7 @@ from envs.env import Env
 from softgym.utils.visualization import save_numpy_as_gif, make_grid
 import matplotlib.pyplot as plt
 
+from scipy.spatial import ConvexHull
 import wandb
 import gc
 
@@ -95,11 +96,12 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
                         obs = obs[0]
                     # print(obs.shape)
                     
-                with utils.eval_mode(agent):
-                    if sample_stochastically:
-                        action = agent.sample_action(obs)
-                    else:
-                        action = agent.select_action(obs)
+                # with utils.eval_mode(agent):
+                #     if sample_stochastically:
+                #         action = agent.sample_action(obs)
+                #     else:
+                #         action = agent.select_action(obs)
+                action = np.array([1.0, 0.0, 0.0, 0.0, ])
                 obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 ep_info.append(info)
@@ -189,7 +191,7 @@ def main(args):
     else:
         print('==================== NOT USING WANDB ====================')
 
-    symbolic = args.env_kwargs['observation_mode'] != 'cam_rgb'
+    symbolic = False if args.env_kwargs['observation_mode'] in ['cam_rgb', 'img_depth', 'only_depth'] else True
     args.encoder_type = 'identity' if symbolic else 'pixel'
 
     env = Env(args.env_name, symbolic, args.seed, 100, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
@@ -209,14 +211,18 @@ def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     action_shape = env.action_space.shape
-
     if args.encoder_type == 'pixel':
-        obs_shape = (3,env.observation_space.shape[-2],env.observation_space.shape[-3])
+        if args.env_kwargs['observation_mode'] == 'cam_rgb':
+            obs_shape = (3, args.image_size, args,image_size)
+        elif args.env_kwargs['observation_mode'] == 'only_depth':
+            obs_shape = (1, args.image_size, args.image_size)
+        else:
+            obs_shape = (4, args.image_size, args.image_size)
         pre_aug_obs_shape = obs_shape
     else:
         obs_shape = env.observation_space.shape
         pre_aug_obs_shape = obs_shape
-    
+
     if args.aug_transition:
         print(f'==================== AUGMENTED TRANSITION with {args.aug_n} TRANSFORMATION of {args.aug_type}====================')
         replay_buffer = utils.ReplayBufferAugmented(
@@ -239,48 +245,129 @@ def main(args):
             image_size=args.image_size,
         )
 
-    agent = make_agent(
-        obs_shape=obs_shape,
-        action_shape=action_shape,
-        args=args,
-        device=device
-    )
+    # agent = make_agent(
+    #     obs_shape=obs_shape,
+    #     action_shape=action_shape,
+    #     args=args,
+    #     device=device
+    # )
     
     episode, episode_reward, done, ep_info = 0, 0, True, []
     start_time = time.time()
-    # exit()
-    for step in range(args.num_train_steps):
-        # evaluate agent periodically
-        if step % args.eval_freq == 0:
-            L.log('eval/episode', episode, step)
-            evaluate(env, agent, video_dir, args.num_eval_episodes, L, step, args)
-            if args.save_model and (step % (args.eval_freq * 5) == 0):
-                agent.save(model_dir, step)
-            if args.save_buffer:
-                replay_buffer.save(buffer_dir)
-            
-        if done:
-            if step > 0:
-                if step % args.log_interval == 0:
-                    finish_time = time.time()
-                    L.log('train/duration', finish_time - start_time, step)
-                    if args.wandb:
-                        wandb.log({'Duration': finish_time - start_time})
-                    for key, val in get_info_stats([ep_info]).items():
-                        L.log('train/info_' + key, val, step)
-                    L.dump(step)
-                start_time = time.time()
-            if step % args.log_interval == 0:
-                L.log('train/episode_reward', episode_reward, step)
+    total_time = 0
 
-            obs = env.reset()
-            done = False
-            ep_info = []
-            episode_reward = 0
-            episode_step = 0
-            episode += 1
-            if step % args.log_interval == 0:
-                L.log('train/episode', episode, step)
+    for planner_step in range(10):
+        obs = env.reset()
+        particle_pos = env.action_tool._get_pos()[1]
+        hull = ConvexHull(particle_pos[:, [0, 2]])
+        bound_id = set()
+        for simplex in hull.simplices:
+            bound_id.add(simplex[0])
+            bound_id.add(simplex[1])
+        bound_id = list(bound_id)
+        # choose 2 random boundary id with min distance > 10 * particle_radius
+        while True:
+            choosen_id = np.random.choice(bound_id, 2, replace=False)
+            if np.linalg.norm(particle_pos[choosen_id[0], [0, 2]] - particle_pos[choosen_id[1], [0, 2]]) > 10 * env.cloth_particle_radius:
+                break
+
+        # move to two choosen point and pick them
+        target_pos = particle_pos[choosen_id, :3]
+        episode_step = 0
+        thresh = env.cloth_particle_radius + env.action_tool.picker_radius + env.action_tool.picker_threshold
+        while True:
+            picker_pos = env.action_tool._get_pos()[0]
+            dis = target_pos - picker_pos
+            norm = np.linalg.norm(dis, axis=1)
+            action = np.clip(dis, -0.08, 0.08) / 0.08
+            if norm[0] <= thresh and norm[1] <= thresh:
+                action = np.concatenate([action, np.ones((2, 1))], axis=1).reshape(-1)
+            else:
+                action = np.concatenate([action, np.zeros((2, 1))], axis=1).reshape(-1)
+            next_obs, reward, done, info = env.step(action)
+            done_bool = 0 if episode_step + 1 == env.horizon else float(done)
+            # replay_buffer.add(obs, action, reward, next_obs, done_bool)
+            episode_step += 1
+            obs = next_obs
+            if done_bool:
+                return
+
+            if env.action_tool.picked_particles[0] is not None and env.action_tool.picked_particles[1] is not None:
+                if action[3] == 1 and action[7] == 1:
+                    print('success')
+                    break
+
+        # choose fling primitive or pick&drag primitive
+        if np.random.rand() < 0.5:
+            # fling primitive
+            # first, move to the height 0.3
+            target_pos = env.action_tool._get_pos()[0]
+            target_pos[:, 1] = 0.3
+            while True:
+                picker_pos = env.action_tool._get_pos()[0]
+                dis = target_pos - picker_pos
+                norm = np.linalg.norm(dis, axis=1)
+                action = np.clip(dis, -0.08, 0.08) / 0.08
+                action = np.concatenate([action, np.ones((2, 1))], axis=1).reshape(-1)
+                next_obs, reward, done, info = env.step(action)
+                done_bool = 0 if episode_step + 1 == env.horizon else float(done)
+                replay_buffer.add(obs, action, reward, next_obs, done_bool)
+                episode_step += 1
+                obs = next_obs
+                if done_bool:
+                    return
+
+                if norm[0] <= thresh and norm[1] <= thresh:
+                    break
+            # second, stretch the cloth
+            curr_pos = env.action_tool._get_pos()[0]
+            flatten_pos = env._get_flat_pos()[choosen_id]
+            length = np.linalg.norm(flatten_pos[0, [0, 2]] - flatten_pos[1, [0, 2]]) * 1.1
+            denta = length - np.linalg.norm(curr_pos[0, [0, 2]] - curr_pos[1, [0, 2]])
+            angle = np.arctan2(curr_pos[1, 2] - curr_pos[0, 2], curr_pos[1, 0] - curr_pos[0, 0])
+            target_pos = curr_pos.copy()
+            target_pos[:, 0] += 0.5 * denta * np.cos(angle)
+            target_pos[0, 2] += 0.5 * denta * np.sin(angle)
+
+
+
+            
+        
+
+
+    # for step in range(args.num_train_steps):
+    #     # evaluate agent periodically
+    #     if step % args.eval_freq == 0:
+    #         L.log('eval/episode', episode, step)
+    #         evaluate(env, agent, video_dir, args.num_eval_episodes, L, step, args)
+    #         if args.save_model and (step % (args.eval_freq * 5) == 0):
+    #             agent.save(model_dir, step)
+    #         if args.save_buffer:
+    #             replay_buffer.save(buffer_dir)
+            
+    #     if done:
+    #         if step > 0:
+    #             if step % args.log_interval == 0:
+    #                 finish_time = time.time()
+    #                 L.log('train/duration', finish_time - start_time, step)
+    #                 if args.wandb:
+    #                     total_time += (finish_time - start_time)
+    #                     wandb.log({'Duration': total_time / 3600.}, step=step)
+    #                 for key, val in get_info_stats([ep_info]).items():
+    #                     L.log('train/info_' + key, val, step)
+    #                 L.dump(step)
+    #             start_time = time.time()
+    #         if step % args.log_interval == 0:
+    #             L.log('train/episode_reward', episode_reward, step)
+
+    #         obs = env.reset()
+    #         done = False
+    #         ep_info = []
+    #         episode_reward = 0
+    #         episode_step = 0
+    #         episode += 1
+    #         if step % args.log_interval == 0:
+    #             L.log('train/episode', episode, step)
 
         # sample action for data collection
         # if step < args.init_steps:
@@ -288,18 +375,22 @@ def main(args):
         # else:
         #     with utils.eval_mode(agent):
         #         action = agent.sample_action(obs)
-        with utils.eval_mode(agent):
-                action = agent.sample_action(obs)
+        # with utils.eval_mode(agent):
+        #     action = agent.sample_action(obs)
 
         # run training update
-        if step >= args.init_steps:
-            agent.update(replay_buffer, L, step)
-        next_obs, reward, done, info = env.step(action)
+        # if step >= args.init_steps:
+            # s_u = time.time()
+            # agent.update(replay_buffer, L, step)
+            # print(f'update time: {time.time() - s_u}')
+        # s_e = time.time()
+        # next_obs, reward, done, info = env.step(action)
+        # print(f'env step time: {time.time() - s_e}')
         # allow infinit bootstrap
-        ep_info.append(info)
-        done_bool = 0 if episode_step + 1 == env.horizon else float(done)
-        episode_reward += reward
-        replay_buffer.add(obs, action, reward, next_obs, done_bool)
+        # ep_info.append(info)
+        # done_bool = 0 if episode_step + 1 == env.horizon else float(done)
+        # episode_reward += reward
+        # replay_buffer.add(obs, action, reward, next_obs, done_bool)
 
-        obs = next_obs
-        episode_step += 1
+        # obs = next_obs
+        # episode_step += 1

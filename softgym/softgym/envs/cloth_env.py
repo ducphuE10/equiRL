@@ -51,16 +51,13 @@ class ClothEnv(FlexEnv):
                 raise NotImplementedError
             self.observation_space = Box(np.array([-np.inf] * obs_dim), np.array([np.inf] * obs_dim), dtype=np.float32)
         elif observation_mode == 'cam_rgb':
-            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 3),
-                                         dtype=np.float32)
+            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 3), dtype=np.float32)
 
         elif observation_mode == 'img_depth':
-            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 4),
-                                         dtype=np.float32)
+            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 4), dtype=np.float32)
 
         elif observation_mode == 'only_depth':
-            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 1),
-                                         dtype=np.float32)
+            self.observation_space = Box(low=-np.inf, high=np.inf, shape=(self.camera_height, self.camera_width, 1), dtype=np.float32)
 
     def _sample_cloth_size(self):
         return np.random.randint(60, 120), np.random.randint(60, 120)
@@ -123,7 +120,7 @@ class ClothEnv(FlexEnv):
         if self.observation_mode == 'img_depth':
             return self.get_image_with_depth(self.camera_height, self.camera_width)
         if self.observation_mode == 'only_depth':
-            return self.get_image_with_depth(self.camera_height, self.camera_width, get_image = False)
+            return self.get_image_with_depth(self.camera_height, self.camera_width, get_image=False)
             
         if self.observation_mode == 'point_cloud':
             particle_pos = np.array(pyflex.get_positions()).reshape([-1, 4])[:, :3].flatten()
@@ -168,7 +165,6 @@ class ClothEnv(FlexEnv):
                                  *camera_params['pos'][:], *camera_params['angle'][:], camera_params['width'], camera_params['height'], mass,
                                  config['flip_mesh']])
         if self.version == 2:
-            import ipdb; ipdb.set_trace()
             robot_params = [1.] if self.action_mode in ['sawyer', 'franka'] else []
             self.params = (scene_params, robot_params)
             pyflex.set_scene(env_idx, scene_params, 0, robot_params)

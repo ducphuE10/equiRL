@@ -212,6 +212,9 @@ def main(args):
         if args.env_kwargs['observation_mode'] == 'cam_rgb':
             obs_shape = (3, args.image_size, args.image_size)
             pre_aug_obs_shape = (3, args.pre_transform_image_size, args.pre_transform_image_size)
+        elif args.env_kwangs['observation_mode'] == 'only_depth':
+            obs_shape = (1, args.image_size, args.image_size)
+            pre_aug_obs_shape = (1, args.pre_transform_image_size, args.pre_transform_image_size)
         else:
             obs_shape = (4, args.image_size, args.image_size)
             pre_aug_obs_shape = (4, args.pre_transform_image_size, args.pre_transform_image_size)

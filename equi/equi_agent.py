@@ -563,7 +563,7 @@ class SacAgent(object):
         self.log_alpha = torch.tensor(np.log(init_temperature)).to(device)
         self.log_alpha.requires_grad = True
         # set target entropy to -|A|
-        self.target_entropy = -np.prod(action_shape-2)
+        self.target_entropy = -np.prod(action_shape) + 2
 
         # optimizers
         self.actor_optimizer = torch.optim.Adam(
@@ -640,9 +640,7 @@ class SacAgent(object):
 
         if self.args.lr_decay is not None:
             self.critic_lr_scheduler.step()
-            # L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
-            if self.args.wandb:
-                wandb.log({'train_critic_lr': self.critic_optimizer.param_groups[0]['lr']}, step=step)
+            L.log('train/critic_lr', self.critic_optimizer.param_groups[0]['lr'], step)
 
         # self.critic.log(L, step)
 
@@ -658,8 +656,7 @@ class SacAgent(object):
             L.log('train_actor/loss', actor_loss, step)
             if self.args.wandb:
                 wandb.log({'train_actor_loss': actor_loss}, step=step)
-                # wandb.log({'train_actor_target_entropy': self.target_entropy}, step=step)
-        entropy = 0.5 * log_std.shape[1] * (1.0 + np.log(2 * np.pi)) + log_std.sum(dim=-1)
+        # entropy = 0.5 * log_std.shape[1] * (1.0 + np.log(2 * np.pi)) + log_std.sum(dim=-1)
 
         # optimize the actor
         self.actor_optimizer.zero_grad()
@@ -668,9 +665,7 @@ class SacAgent(object):
 
         if self.args.lr_decay is not None:
             self.actor_lr_scheduler.step()
-            # L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
-            if self.args.wandb:
-                wandb.log({'train_actor_lr': self.actor_optimizer.param_groups[0]['lr']}, step=step)
+            L.log('train/actor_lr', self.actor_optimizer.param_groups[0]['lr'], step)
 
         if not self.alpha_fixed:
             self.log_alpha_optimizer.zero_grad()
@@ -681,13 +676,16 @@ class SacAgent(object):
                 if self.args.wandb:
                     wandb.log({'train_alpha_loss': alpha_loss}, step=step)
                     wandb.log({'train_alpha_value': self.alpha}, step=step)
+                    wandb.log({'-log pi': -log_pi.mean()}, step=step)
             alpha_loss.backward()
             self.log_alpha_optimizer.step()
 
     def update(self, replay_buffer, L, step):
         #sample from buffer
+        # s_s = time.time()
         obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
         action = utils.preprocess_action(action)
+        # print('sample time', time.time() - s_s)
 
         if step % self.log_interval == 0:
             L.log('train/batch_reward', reward.mean(), step)

@@ -196,8 +196,6 @@ def main(args):
     action_shape = env.action_space.shape
 
     if args.encoder_type == 'pixel':
-        # obs_shape = (3, args.image_size, args.image_size)
-        # pre_aug_obs_shape = (3, args.pre_transform_image_size, args.pre_transform_image_size)
         obs_shape = (3,env.observation_space.shape[-2],env.observation_space.shape[-3])
         pre_aug_obs_shape = obs_shape
     else:

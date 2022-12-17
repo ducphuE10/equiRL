@@ -153,12 +153,12 @@ class Picker(ActionToolBase):
 
                 if self.picked_particles[i] is not None:
                     # TODO The position of the particle needs to be updated such that it is close to the picker particle
-                    new_particle_pos[self.picked_particles[i], :3] = particle_pos[self.picked_particles[i], :3] + new_picker_pos[i, :] - picker_pos[i,
-                                                                                                                                         :]
+                    new_particle_pos[self.picked_particles[i], :3] = particle_pos[self.picked_particles[i], :3] + new_picker_pos[i, :] - picker_pos[i, :]
                     new_particle_pos[self.picked_particles[i], 3] = 0  # Set the mass to infinity
 
         # check for e.g., rope, the picker is not dragging the particles too far away that violates the actual physicals constraints.
         if self.init_particle_pos is not None:
+            assert self.init_particle_pos.shape == particle_pos.shape
             picked_particle_idices = []
             active_picker_indices = []
             for i in range(self.num_picker):

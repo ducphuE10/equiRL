@@ -113,8 +113,8 @@ class ClothFlattenEnv(ClothEnv):
         """ Right now only use one initial state"""
         self.prev_covered_area = self._get_current_covered_area(pyflex.get_positions())
         if hasattr(self, 'action_tool'):
-            curr_pos = pyflex.get_positions()
             self.action_tool.init_particle_pos = self.get_current_config()['init_particle_pos']
+            curr_pos = pyflex.get_positions()
             cx, cy = self._get_center_point(curr_pos)
             self.action_tool.reset([cx, 0.2, cy])
         pyflex.step()
@@ -137,7 +137,6 @@ class ClothFlattenEnv(ClothEnv):
         :param pos: Current positions of the particle states
         """
         pos = np.reshape(pos, [-1, 4])
-        # take value have pos[:, 0] > -.5 and pos[:, 2] > -.5 and pos[:, 0] < 0.5 and pos[:, 2] < 0.5
         pos = pos[np.where((pos[:, 0] > -.5) & (pos[:, 2] > -.5) & (pos[:, 0] < 0.5) & (pos[:, 2] < 0.5))]
 
         min_x = np.min(pos[:, 0])

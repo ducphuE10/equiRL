@@ -3,7 +3,7 @@ DEFAULT_CONFIG = {
     'domain_name': 'cartpole',
     'task_name': 'swingup',
     'pre_transform_image_size': 128,
-    'image_size': 100,
+    'image_size': 128,
     'action_repeat': 1,
     # replay buffer
     'replay_buffer_capacity': 100000,
@@ -33,7 +33,7 @@ DEFAULT_CONFIG = {
     'encoder_lr': 1e-3,
     'encoder_tau': 0.05,
     'num_layers': 4,
-    'num_filters': 32,
+    'num_filters': 16,
     'curl_latent_dim': 128,
     # sac
     'discount': 0.99,
@@ -56,6 +56,6 @@ DEFAULT_CONFIG = {
     # equivariant
     'num_rotations': 8,
     # wandb
-    'wandb': True,
-    'wandb_seed': 6
+    'wandb': False,
+    'wandb_seed': 7
 }

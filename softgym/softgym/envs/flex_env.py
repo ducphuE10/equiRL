@@ -105,8 +105,7 @@ class FlexEnv(gym.Env):
             self.camera_params[camera_name] = camera_param
         else:
             camera_param = self.camera_params[camera_name]
-        pyflex.set_camera_params(
-            np.array([*camera_param['pos'], *camera_param['angle'], camera_param['width'], camera_param['height']]))
+        pyflex.set_camera_params(np.array([*camera_param['pos'], *camera_param['angle'], camera_param['width'], camera_param['height']]))
 
     def get_state(self):
         pos = pyflex.get_positions()
@@ -114,7 +113,11 @@ class FlexEnv(gym.Env):
         shape_pos = pyflex.get_shape_states()
         phase = pyflex.get_phases()
         camera_params = copy.deepcopy(self.camera_params)
-        return {'particle_pos': pos, 'particle_vel': vel, 'shape_pos': shape_pos, 'phase': phase, 'camera_params': camera_params,
+        return {'particle_pos': pos, 
+                'particle_vel': vel, 
+                'shape_pos': shape_pos, 
+                'phase': phase, 
+                'camera_params': camera_params,
                 'config_id': self.current_config_id}
 
     def set_state(self, state_dict):
@@ -183,7 +186,7 @@ class FlexEnv(gym.Env):
                 frames.append(self.get_image(img_size, img_size))
         obs = self._get_obs()
         reward = self.compute_reward(action, obs, set_prev_reward=True)
-        reward = reward/self.current_config['flatten_area']
+        reward = reward / self.current_config['flatten_area']
         info = self._get_info()
 
         if self.recording:
@@ -226,7 +229,7 @@ class FlexEnv(gym.Env):
             width, height = self.camera_params['default_camera']['width'], self.camera_params['default_camera']['height']
             img = img.reshape(height, width, 4)[::-1, :, :3]  # Need to reverse the height dimension
             _, depth = pyflex.render_cloth()
-            depth = depth.reshape(height,width)[::-1]
+            depth = depth.reshape(height, width)[::-1]
             depth[depth>5] = 0
             return img, depth
         elif mode == 'human':
@@ -239,16 +242,20 @@ class FlexEnv(gym.Env):
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
         return img
+
     def get_image_with_depth(self, width=720, height=720, get_image = True):
         """ use pyflex.render to get a rendered image. """
         img, depth= self.render(mode='rgb_depth')
-        img = img.astype(np.float32)
-        depth = np.expand_dims(depth*255.0, axis = 2)
+        # img = img.astype(np.float32)
+        # import ipdb; ipdb.set_trace()
+        img = img.astype(np.uint8)
+        depth = np.expand_dims(depth*255.0, axis=2)
+        depth = depth.astype(np.uint8)
         if width != img.shape[0] or height != img.shape[1]:
             img = cv2.resize(img, (width, height))
-            depth = cv2.resize(depth, (width,height))
+            depth = cv2.resize(depth, (width, height))
         if get_image:
-            return np.concatenate((img,depth),axis = 2) 
+            return np.concatenate((img, depth), axis=2) 
         else:
             return depth
 
