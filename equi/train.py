@@ -275,7 +275,7 @@ def main(args):
         count_choose_id = 0
         while True:
             choosen_id = np.random.choice(bound_id, 2, replace=False)
-            if np.linalg.norm(particle_pos[choosen_id[0], [0, 2]] - particle_pos[choosen_id[1], [0, 2]]) > 6 * env.cloth_particle_radius:
+            if np.linalg.norm(particle_pos[choosen_id[0], [0, 2]] - particle_pos[choosen_id[1], [0, 2]]) >=  6 * env.action_tool.picker_radius:
                 break
             if count_choose_id > 10:
                 flag_choose_id = False
@@ -309,7 +309,7 @@ def main(args):
             episode_step += 1
             obs = next_obs
             count_pick_boundary += 1
-            if count_pick_boundary >= 6:
+            if count_pick_boundary >= 6 or np.linalg.norm(picker_pos[0]-picker_pos[1]) <= 5 * env.cloth_particle_radius:
                 flag_pick_boundary = False
                 break
             if env.action_tool.picked_particles[0] is not None and env.action_tool.picked_particles[1] is not None:
@@ -320,11 +320,12 @@ def main(args):
             continue
         # choose fling primitive or pick&drag primitive
         if np.random.rand() < 1.5:
-            print('==================== PICK AND DRAG ====================')
             # fling primitive
             # first, move to the height 0.3
             target_pos = env.action_tool._get_pos()[0]
             target_pos[:, 1] = 0.3
+            if np.linalg.norm(target_pos[0] - target_pos[1]) <= 5 * env.cloth_particle_radius:
+                continue
             flag_move_height = True
             count_move_height = 0
             while True:
@@ -349,10 +350,12 @@ def main(args):
                 continue
             # second, stretch the cloth
             curr_pos = env.action_tool._get_pos()[0]
+            if np.linalg.norm(curr_pos[0] - curr_pos[1]) <= 5 * env.cloth_particle_radius:
+                continue
             init_pos = env._get_flat_pos()
             init_dis = np.linalg.norm(init_pos[choosen_id[0], [0, 2]] - init_pos[choosen_id[1], [0, 2]])
-            curr_dis = np.linalg.norm(curr_pos[choosen_id[0], [0, 2]] - curr_pos[choosen_id[1], [0, 2]])
-            denta = (curr_dis - init_dis) / 2
+            curr_dis = np.linalg.norm(curr_pos[0, [0, 2]] - curr_pos[1, [0, 2]])
+            denta = (init_dis-curr_dis) / 2
             if curr_pos[0, 0] > curr_pos[1, 0]:
                 left = 1
                 right = 0
@@ -381,16 +384,67 @@ def main(args):
                 episode_step += 1
                 obs = next_obs
                 count_stretch += 1
-                if count_stretch >= 6:
+                if count_stretch >= 8:
                     flag_stretch = False
                     break
                 if norm[0] <= thresh and norm[1] <= thresh:
                     break
             if not flag_stretch:
                 continue
-            # third, fling the cloth
-            # first, move to the height 0.3
-            #         
+            # third, fling the cloth towards
+            curr_pos = env.action_tool._get_pos()[0]
+            if np.linalg.norm(curr_pos[0] - curr_pos[1]) <= 5 * env.cloth_particle_radius:
+                continue
+            if curr_pos[0, 0] > curr_pos[1, 0]:
+                left = 1
+                right = 0
+            else:
+                left = 0
+                right = 1
+            denta_x = curr_pos[right, 0] - curr_pos[left, 0]
+            denta_y = curr_pos[right, 2] - curr_pos[left, 2]
+            k = - denta_y / denta_x
+            dy = 1 / np.sqrt(1 + k**2)
+            dx = k / np.sqrt(1 + k**2)
+            for i in reversed(range(5)):
+                m = 0.1 * i
+                action = np.array([dx, m, dy, 1.0, dx, m, dy, 1.0])
+                next_obs, reward, done, info = env.step(action)
+                done_bool = 1 if episode_step + 1 == env.horizon else float(done)
+                # replay_buffer.add(obs, action, reward, next_obs, done_bool)
+                frames.append(env.get_image(128, 128))
+                episode_step += 1
+                obs = next_obs
+            # fourth, move back the cloth to the ground
+            for i in range(10):
+                action = np.array([-dx, -0.5, -dy, 1.0, -dx, -0.5, -dy, 1.0])
+                if env.action_tool._get_pos()[0][0, 1] <= thresh:
+                    break
+                next_obs, reward, done, info = env.step(action)
+                done_bool = 1 if episode_step + 1 == env.horizon else float(done)
+                # replay_buffer.add(obs, action, reward, next_obs, done_bool)
+                frames.append(env.get_image(128, 128))
+                episode_step += 1
+                obs = next_obs
+            # give up the cloth, deactivate the picker
+            action = np.zeros(8)
+            next_obs, reward, done, info = env.step(action)
+            done_bool = 1 if episode_step + 1 == env.horizon else float(done)
+            # replay_buffer.add(obs, action, reward, next_obs, done_bool)
+            frames.append(env.get_image(128, 128))
+            episode_step += 1
+            obs = next_obs
+            
+            # move the picker up
+            for _ in range(2):
+                action = np.array([0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+                next_obs, reward, done, info = env.step(action)
+                done_bool = 1 if episode_step + 1 == env.horizon else float(done)
+                # replay_buffer.add(obs, action, reward, next_obs, done_bool)
+                frames.append(env.get_image(128, 128))
+                episode_step += 1
+                obs = next_obs
+                
         if len(frames) != 100:
             for i in range(100 - len(frames)-1):
                 frames.append(env.get_image(128, 128))
