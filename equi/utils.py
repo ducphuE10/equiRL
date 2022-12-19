@@ -234,21 +234,21 @@ class ReplayBufferAugmented(ReplayBuffer):
     
     def add(self, obs, action, reward, next_obs, done):
         super().add(obs, action, reward, next_obs, done)
-        os.makedirs('augmented', exist_ok=True)
-        plt.figure(figsize=(15, 15))
-        plt.subplot(self.aug_n+1, 2, 1)
-        plt.imshow(obs[0].numpy().transpose(1, 2, 0))
-        plt.subplot(self.aug_n+1, 2, 2)
-        plt.imshow(next_obs[0].numpy().transpose(1, 2, 0))
+        # os.makedirs('augmented', exist_ok=True)
+        # plt.figure(figsize=(15, 15))
+        # plt.subplot(self.aug_n+1, 2, 1)
+        # plt.imshow(obs[0].numpy().transpose(1, 2, 0))
+        # plt.subplot(self.aug_n+1, 2, 2)
+        # plt.imshow(next_obs[0].numpy().transpose(1, 2, 0))
         for i in range(self.aug_n):
             obs_, action_, reward_, next_obs_, done_ = augmentTransition(obs, action, reward, next_obs, done, DEFAULT_CONFIG['aug_type'])
-            plt.subplot(self.aug_n+1, 2, 2*i+3)
-            plt.imshow(obs_[0].numpy().transpose(1, 2, 0))
-            plt.subplot(self.aug_n+1, 2, 2*i+4)
-            plt.imshow(next_obs_[0].numpy().transpose(1, 2, 0))
+            # plt.subplot(self.aug_n+1, 2, 2*i+3)
+            # plt.imshow(obs_[0].numpy().transpose(1, 2, 0))
+            # plt.subplot(self.aug_n+1, 2, 2*i+4)
+            # plt.imshow(next_obs_[0].numpy().transpose(1, 2, 0))
             super().add(obs_, action_, reward_, next_obs_, done_)
-        plt.savefig(f'augmented/{self.idx}.png')
-        exit()
+        # plt.savefig(f'augmented/{self.idx}.png')
+        # exit()
 
 def augmentTransition(obs, action, reward, next_obs, done, aug_type):
     if aug_type=='se2':

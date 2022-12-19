@@ -96,12 +96,12 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
                 # center crop image
                 if args.encoder_type == 'pixel':
                     obs = utils.center_crop_image(obs, args.image_size)
-                with utils.eval_mode(agent):
-                    if sample_stochastically:
-                        action = agent.sample_action(obs)
-                    else:
-                        action = agent.select_action(obs)
-                # action = np.array([1.0, 0.0, 1.0, 0.15, -1.0, 0.0, -1.0, 0.01])
+                # with utils.eval_mode(agent):
+                #     if sample_stochastically:
+                #         action = agent.sample_action(obs)
+                #     else:
+                #         action = agent.select_action(obs)
+                action = np.array([1.0, 0.0, 0.0, 0.15, -1.0, 0.0, 0.0, 0.01])
                 obs, reward, done, info = env.step(action)
                 episode_reward += reward
                 ep_info.append(info)
@@ -118,7 +118,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
         plt.ylabel('Reward')
         plt.title('Reward over time')
         plt.savefig(os.path.join(video_dir, '%d.png' % step))
-        plt.close()
+        plt.close()        
         all_frames = np.array(all_frames).swapaxes(0, 1)
         all_frames = np.array([make_grid(np.array(frame), nrow=2, padding=3) for frame in all_frames])
         save_numpy_as_gif(all_frames, os.path.join(video_dir, '%d.gif' % step))
@@ -136,6 +136,7 @@ def evaluate(env, agent, video_dir, num_episodes, L, step, args):
 
     run_eval_loop(sample_stochastically=False)
     L.dump(step)
+    exit()
     
 
 def make_agent(obs_shape, action_shape, args, device):
@@ -190,8 +191,10 @@ def main(args):
 
     symbolic = args.env_kwargs['observation_mode'] not in ['cam_rgb','img_depth']
     args.encoder_type = 'identity' if symbolic else 'pixel'
+    # import ipdb; ipdb.set_trace()
     env = Env(args.env_name, symbolic, args.seed, 100, 1, 8, args.pre_transform_image_size, env_kwargs=args.env_kwargs, normalize_observation=False,
               scale_reward=args.scale_reward, clip_obs=args.clip_obs)
+
     env.seed(args.seed)
 
     # make directory

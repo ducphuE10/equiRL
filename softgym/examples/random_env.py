@@ -50,8 +50,17 @@ def main():
 
     if not env_kwargs['use_cached_states']:
         print('Waiting to generate environment variations. May take 1 minute for each variation...')
-    env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
-    env.reset()
+    # env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
+    env = SOFTGYM_ENVS[args.env_name](**env_kwargs)
+    # env.reset()
+
+
+    # img = env.get_image(args.img_size, args.img_size)
+    exit()
+    # import matplotlib.pyplot as plt 
+    # plt.show(img)
+    # exit()
+
 
     frames = [env.get_image(args.img_size, args.img_size)]
     for i in range(env.horizon):

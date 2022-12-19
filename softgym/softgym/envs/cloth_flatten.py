@@ -137,8 +137,6 @@ class ClothFlattenEnv(ClothEnv):
         :param pos: Current positions of the particle states
         """
         pos = np.reshape(pos, [-1, 4])
-        pos = pos[np.where((pos[:, 0] > -.5) & (pos[:, 2] > -.5) & (pos[:, 0] < 0.5) & (pos[:, 2] < 0.5))]
-
         min_x = np.min(pos[:, 0])
         min_y = np.min(pos[:, 2])
         max_x = np.max(pos[:, 0])
