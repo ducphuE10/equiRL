@@ -258,6 +258,7 @@ def main(args):
 
     print('==================== START COLLECTING DEMONSTRATIONS ====================')
     all_frames_planner = []
+    final_reward = []
     thresh = env.cloth_particle_radius + env.action_tool.picker_radius + env.action_tool.picker_threshold
     while True:
         obs = env.reset()
@@ -444,14 +445,18 @@ def main(args):
                 frames.append(env.get_image(128, 128))
                 episode_step += 1
                 obs = next_obs
+
+
                 
         if len(frames) != 100:
             for i in range(100 - len(frames)-1):
                 frames.append(env.get_image(128, 128))
         print(f'Number of frames: {len(frames)}')
         all_frames_planner.append(frames)
-        if len(all_frames_planner) == 10:
+        final_reward.append(reward)
+        if len(all_frames_planner) == 20:
             break
+    print(f'Final reward: {np.mean(final_reward)}')
     all_frames_planner = np.array(all_frames_planner).swapaxes(0, 1)
     all_frames_planner = np.array([make_grid(np.array(frame), nrow=2, padding=3) for frame in all_frames_planner])
     save_numpy_as_gif(all_frames_planner, 'expert.gif')
