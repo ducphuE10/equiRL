@@ -284,17 +284,20 @@ def main(args):
             continue
 
         # find the closest points for picker
+        print('choosen_id', choosen_id)
         if np.linalg.norm(particle_pos[choosen_id[0], :3] - picker_pos[0]) > np.linalg.norm(particle_pos[choosen_id[1], :3] - picker_pos[0]):
             choosen_id = np.array([choosen_id[1], choosen_id[0]])
+        print('after choosen_id', choosen_id)
         # move to two choosen boundary points and pick them
         flag_pick_boundary = True
         count_pick_boundary = 0    
         while True:
-            picker_pos = env.action_tool._get_pos()[0]
+            picker_pos, particle_pos = env.action_tool._get_pos()
             target_pos = particle_pos[choosen_id, :3]
             dis = target_pos - picker_pos
             norm = np.linalg.norm(dis, axis=1)
             action = np.clip(dis, -0.08, 0.08) / 0.08
+            # import ipdb; ipdb.set_trace()
             if norm[0] <= thresh and norm[1] <= thresh:
                 action = np.concatenate([action, np.ones((2, 1))], axis=1).reshape(-1)
             else:
@@ -310,13 +313,14 @@ def main(args):
                 flag_pick_boundary = False
                 break
             if env.action_tool.picked_particles[0] is not None and env.action_tool.picked_particles[1] is not None:
-                if len(set(env.action_tool.picked_particles)) == 1:
+                if len(set(particle_pos[env.action_tool.picked_particles, 3])) == 1:
                     print(f'collected in {episode_step} steps')
                     break
         if not flag_pick_boundary:
             continue
         # choose fling primitive or pick&drag primitive
         if np.random.rand() < 1.5:
+            print('==================== PICK AND DRAG ====================')
             # fling primitive
             # first, move to the height 0.3
             target_pos = env.action_tool._get_pos()[0]
